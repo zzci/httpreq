@@ -211,11 +211,14 @@ func (d *acmednsdb) handleDBUpgradeTo3() error {
 }
 
 func (d *acmednsdb) handleDBUpgradeTo4() error {
-	// Add api_key column to existing users table
+	// Add api_key column — SQLite doesn't support UNIQUE in ALTER TABLE ADD COLUMN
 	if d.Config.Database.Engine == "sqlite" {
-		_, _ = d.DB.Exec("ALTER TABLE users ADD COLUMN api_key TEXT UNIQUE DEFAULT ''")
+		_, _ = d.DB.Exec("ALTER TABLE users ADD COLUMN api_key TEXT DEFAULT ''")
+		// Create unique index separately
+		_, _ = d.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_api_key ON users(api_key) WHERE api_key != ''")
 	} else {
-		_, _ = d.DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key TEXT UNIQUE DEFAULT ''")
+		_, _ = d.DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key TEXT DEFAULT ''")
+		_, _ = d.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_api_key ON users(api_key) WHERE api_key != ''")
 	}
 	// Generate api_key for existing users that don't have one
 	rows, err := d.DB.Query("SELECT id FROM users WHERE api_key = '' OR api_key IS NULL")
