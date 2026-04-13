@@ -6,12 +6,11 @@ COPY web/ ./
 RUN npx vite build
 
 FROM golang:1.24-alpine AS backend
+RUN apk add --no-cache git
 WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
 COPY . .
 COPY --from=frontend /build/web/dist ./web/dist
-RUN CGO_ENABLED=0 GOFLAGS=-buildvcs=false go build -ldflags="-s -w" -o httpdns .
+RUN go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o httpdns .
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata
