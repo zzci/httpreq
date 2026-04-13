@@ -5,7 +5,7 @@ RUN npm ci
 COPY web/ ./
 RUN npx vite build
 
-FROM golang:1.25-alpine AS backend
+FROM golang:alpine AS backend
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
