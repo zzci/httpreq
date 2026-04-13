@@ -34,8 +34,7 @@ func (a *API) webCleanupPost(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	domain := httpdns.ExtractDomainFromFQDN(payload.FQDN)
-	subdomain, err := a.DB.GetSubdomainByUserDomain(user.ID, domain)
+	subdomain, err := a.resolveSubdomain(user.ID, payload.FQDN)
 	if err != nil {
 		a.Logger.Errorw("Cleanup: domain not authorized",
 			"user", user.Username, "fqdn", payload.FQDN)

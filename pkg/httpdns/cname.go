@@ -35,3 +35,20 @@ func ExtractDomainFromFQDN(fqdn string) string {
 	fqdn = strings.TrimPrefix(fqdn, "_acme-challenge.")
 	return fqdn
 }
+
+// ExtractSubdomainFromFQDN extracts the nanoid subdomain if the FQDN is under the base domain.
+// Example: "r0hc4bc6.s.dnsall.com." with baseDomain "s.dnsall.com" -> "r0hc4bc6", true
+// Returns empty string and false if the FQDN is not under the base domain.
+func ExtractSubdomainFromFQDN(fqdn, baseDomain string) (string, bool) {
+	fqdn = strings.ToLower(strings.TrimSpace(fqdn))
+	fqdn = strings.TrimSuffix(fqdn, ".")
+	baseDomain = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(baseDomain), "."))
+	suffix := "." + baseDomain
+	if strings.HasSuffix(fqdn, suffix) {
+		sub := strings.TrimSuffix(fqdn, suffix)
+		if sub != "" && !strings.Contains(sub, ".") {
+			return sub, true
+		}
+	}
+	return "", false
+}

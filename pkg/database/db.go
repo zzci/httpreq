@@ -449,6 +449,22 @@ func (d *acmednsdb) GetSubdomainByUserDomain(userID int64, domain string) (strin
 	return subdomain, nil
 }
 
+func (d *acmednsdb) GetSubdomainOwner(subdomain string) (int64, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	subdomain = strings.ToLower(strings.TrimSpace(subdomain))
+	var userID int64
+	getSQL := `SELECT user_id FROM user_domains WHERE subdomain=$1`
+	if d.Config.Database.Engine == "sqlite" {
+		getSQL = getSQLiteStmt(getSQL)
+	}
+	err := d.DB.QueryRow(getSQL, subdomain).Scan(&userID)
+	if err != nil {
+		return 0, fmt.Errorf("subdomain not found: %w", err)
+	}
+	return userID, nil
+}
+
 func (d *acmednsdb) Close() {
 	d.DB.Close()
 }

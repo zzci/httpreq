@@ -8,9 +8,25 @@ import (
 	"github.com/zzci/httpdns/pkg/httpdns"
 )
 
+// resolveSubdomain resolves the nanoid subdomain from the FQDN.
+// lego may send either the original FQDN (_acme-challenge.pvv.cc.)
+// or the CNAME-resolved FQDN (r0hc4bc6.s.dnsall.com.).
+func (a *API) resolveSubdomain(userID int64, fqdn string) (string, error) {
+	// Case 1: FQDN is under our base domain (CNAME-resolved), e.g. r0hc4bc6.s.dnsall.com
+	if sub, ok := httpdns.ExtractSubdomainFromFQDN(fqdn, a.Config.General.Domain); ok {
+		// Verify this subdomain belongs to the authenticated user
+		ownerID, err := a.DB.GetSubdomainOwner(sub)
+		if err == nil && ownerID == userID {
+			return sub, nil
+		}
+	}
+
+	// Case 2: Original FQDN, e.g. _acme-challenge.pvv.cc
+	domain := httpdns.ExtractDomainFromFQDN(fqdn)
+	return a.DB.GetSubdomainByUserDomain(userID, domain)
+}
+
 // webPresentPost handles POST /present (lego httpreq DNS provider).
-// Authenticates via Basic Auth, looks up the user's nanoid subdomain for the domain,
-// then stores the TXT record under <nanoid>.<baseDomain>.
 func (a *API) webPresentPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var payload httpdns.HTTPReqPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -35,9 +51,7 @@ func (a *API) webPresentPost(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	// Look up the nanoid subdomain for this user+domain
-	domain := httpdns.ExtractDomainFromFQDN(payload.FQDN)
-	subdomain, err := a.DB.GetSubdomainByUserDomain(user.ID, domain)
+	subdomain, err := a.resolveSubdomain(user.ID, payload.FQDN)
 	if err != nil {
 		a.Logger.Errorw("Present: domain not authorized",
 			"user", user.Username, "fqdn", payload.FQDN)

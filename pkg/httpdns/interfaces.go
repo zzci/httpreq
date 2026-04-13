@@ -22,6 +22,7 @@ type DB interface {
 	RemoveUserDomain(userID int64, domain string) error
 	GetUserDomains(userID int64) ([]UserDomain, error)
 	GetSubdomainByUserDomain(userID int64, domain string) (string, error)
+	GetSubdomainOwner(subdomain string) (int64, error)
 
 	GetBackend() *sql.DB
 	SetBackend(*sql.DB)
