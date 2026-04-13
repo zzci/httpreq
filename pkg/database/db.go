@@ -431,19 +431,28 @@ func (d *acmednsdb) AddUserDomain(userID int64, username, domain string) (httpdn
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	domain = strings.ToLower(strings.TrimSpace(domain))
-	subdomain := httpdns.GenerateSubdomain(username, domain)
 	insSQL := `INSERT INTO user_domains (user_id, domain, subdomain) VALUES ($1, $2, $3)`
 	if d.Config.Database.Engine == "sqlite" {
 		insSQL = getSQLiteStmt(insSQL)
 	}
-	_, err := d.DB.Exec(insSQL, userID, domain, subdomain)
-	if err != nil {
-		return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
+	// Try with increasing salt on subdomain collision (max 10 attempts)
+	for salt := 0; salt < 10; salt++ {
+		subdomain := httpdns.GenerateSubdomain(username, domain, salt)
+		_, err := d.DB.Exec(insSQL, userID, domain, subdomain)
+		if err == nil {
+			return httpdns.UserDomain{Domain: domain, Subdomain: subdomain}, nil
+		}
+		errStr := strings.ToLower(err.Error())
+		// Only retry on subdomain uniqueness collision, not on user_id+domain duplicate
+		if !strings.Contains(errStr, "unique") && !strings.Contains(errStr, "duplicate") {
+			return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
+		}
+		// Check if it's a user_id+domain duplicate (not a subdomain collision)
+		if strings.Contains(errStr, "user_id") || strings.Contains(errStr, "user_domains.user_id") {
+			return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
+		}
 	}
-	return httpdns.UserDomain{
-		Domain:    domain,
-		Subdomain: subdomain,
-	}, nil
+	return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: subdomain collision after retries")
 }
 
 func (d *acmednsdb) RemoveUserDomain(userID int64, domain string) error {

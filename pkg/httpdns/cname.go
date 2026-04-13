@@ -24,13 +24,15 @@ func GenerateAPIKey() string {
 }
 
 // GenerateSubdomain creates a deterministic subdomain from username and domain.
-// The same username+domain always produces the same subdomain, so even if
-// the database is lost, CNAME records don't need to change.
-func GenerateSubdomain(username, domain string) string {
+// The same username+domain+salt always produces the same subdomain.
+// salt=0 is the default; increment salt to resolve collisions.
+func GenerateSubdomain(username, domain string, salt int) string {
 	input := strings.ToLower(username) + ":" + strings.ToLower(domain)
+	if salt > 0 {
+		input += ":" + strings.Repeat("x", salt)
+	}
 	hash := sha256.Sum256([]byte(input))
 	hexStr := hex.EncodeToString(hash[:])
-	// Take first 8 chars — hex only uses 0-9a-f, which is a subset of nanoidAlphabet
 	return hexStr[:subdomainLength]
 }
 
