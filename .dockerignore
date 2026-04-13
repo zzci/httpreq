@@ -1,0 +1,8 @@
+data/
+httpdns
+*.db
+*.log
+web/node_modules/
+web/dist/
+.git/
+.github/

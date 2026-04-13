@@ -1,0 +1,5 @@
+httpdns
+data/
+coverage.out
+.idea/
+web/node_modules/

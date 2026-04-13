@@ -1,0 +1,11 @@
+services:
+  httpdns:
+    image: zzci/httpdns:latest
+    container_name: httpdns
+    restart: unless-stopped
+    ports:
+      - "53:53"
+      - "53:53/udp"
+      - "3000:3000"
+    volumes:
+      - ./data:/data
