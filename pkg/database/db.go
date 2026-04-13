@@ -465,6 +465,64 @@ func (d *acmednsdb) GetSubdomainOwner(subdomain string) (int64, error) {
 	return userID, nil
 }
 
+// --- Admin methods ---
+
+func (d *acmednsdb) ListUsers() ([]httpdns.User, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	var users []httpdns.User
+	rows, err := d.DB.Query("SELECT id, username, password_hash, created_at FROM users ORDER BY id")
+	if err != nil {
+		return users, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var u httpdns.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt); err != nil {
+			return users, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
+func (d *acmednsdb) DeleteUser(userID int64) error {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	delSQL := `DELETE FROM user_domains WHERE user_id=$1`
+	if d.Config.Database.Engine == "sqlite" {
+		delSQL = getSQLiteStmt(delSQL)
+	}
+	_, _ = d.DB.Exec(delSQL, userID)
+	delSQL = `DELETE FROM users WHERE id=$1`
+	if d.Config.Database.Engine == "sqlite" {
+		delSQL = getSQLiteStmt(delSQL)
+	}
+	_, err := d.DB.Exec(delSQL, userID)
+	return err
+}
+
+func (d *acmednsdb) ListAllDomains() ([]httpdns.UserDomain, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	var domains []httpdns.UserDomain
+	rows, err := d.DB.Query("SELECT ud.domain, ud.subdomain, u.username FROM user_domains ud JOIN users u ON ud.user_id = u.id ORDER BY ud.domain")
+	if err != nil {
+		return domains, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ud httpdns.UserDomain
+		var owner string
+		if err := rows.Scan(&ud.Domain, &ud.Subdomain, &owner); err != nil {
+			return domains, err
+		}
+		ud.Owner = owner
+		domains = append(domains, ud)
+	}
+	return domains, nil
+}
+
 func (d *acmednsdb) Close() {
 	d.DB.Close()
 }

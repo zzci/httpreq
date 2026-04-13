@@ -24,6 +24,11 @@ type DB interface {
 	GetSubdomainByUserDomain(userID int64, domain string) (string, error)
 	GetSubdomainOwner(subdomain string) (int64, error)
 
+	// Admin operations
+	ListUsers() ([]User, error)
+	DeleteUser(userID int64) error
+	ListAllDomains() ([]UserDomain, error)
+
 	GetBackend() *sql.DB
 	SetBackend(*sql.DB)
 	Close()

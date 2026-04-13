@@ -40,6 +40,7 @@ type UserDomain struct {
 	Domain      string `json:"domain"`
 	Subdomain   string `json:"subdomain"`
 	CNAMETarget string `json:"cname_target"`
+	Owner       string `json:"owner,omitempty"`
 }
 
 // API config
@@ -58,6 +59,8 @@ type httpapi struct {
 	HeaderName        string `toml:"header_name"`
 	// JWT secret for API token signing (auto-generated if empty)
 	JWTSecret string `toml:"jwt_secret"`
+	// Admin API key for managing all users and domains
+	AdminKey string `toml:"admin_key"`
 }
 
 // Logging config

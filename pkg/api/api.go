@@ -65,6 +65,15 @@ func (a *API) Start(dnsservers []httpdns.NS) {
 	router.DELETE("/api/domains/:domain", a.JWTAuth(a.apiRemoveDomain))
 	router.GET("/api/records", a.JWTAuth(a.apiGetRecords))
 
+	// Admin endpoints — API key auth
+	router.GET("/admin/users", a.AdminAuth(a.adminListUsers))
+	router.POST("/admin/users", a.AdminAuth(a.adminCreateUser))
+	router.DELETE("/admin/users/:id", a.AdminAuth(a.adminDeleteUser))
+	router.GET("/admin/domains", a.AdminAuth(a.adminListDomains))
+	router.POST("/admin/domains", a.AdminAuth(a.adminAddDomain))
+	router.DELETE("/admin/domains/:domain", a.AdminAuth(a.adminRemoveDomain))
+	router.GET("/admin/records", a.AdminAuth(a.adminListRecords))
+
 	// SPA static files — serve from web/dist if it exists
 	handler := a.withSPA(c.Handler(router))
 
@@ -157,7 +166,8 @@ func (a *API) withSPA(router http.Handler) http.Handler {
 
 		// API, httpreq, and health endpoints go to the router
 		if path == "/present" || path == "/cleanup" || path == "/health" ||
-			len(path) >= 4 && path[:4] == "/api" {
+			len(path) >= 4 && path[:4] == "/api" ||
+			len(path) >= 6 && path[:6] == "/admin" {
 			router.ServeHTTP(w, r)
 			return
 		}
