@@ -94,7 +94,10 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <div className="topbar-brand">HTTPREQ</div>
+      <div className="topbar-brand">
+        <div className="topbar-brand-name">HTTPREQ</div>
+        <div className="topbar-brand-tagline">ACME httpreq Server</div>
+      </div>
       <div className="topbar">
         <div className="topbar-nav">
           <button className={`nav-item ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>

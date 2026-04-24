@@ -152,11 +152,21 @@ body {
 
 .topbar-brand {
   text-align: center;
+  padding: 1rem 0 0.75rem;
+}
+
+.topbar-brand-name {
   font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--blue-600);
-  padding: 1rem 0 0.75rem;
+}
+
+.topbar-brand-tagline {
+  font-size: 0.75rem;
+  color: var(--slate-400);
+  letter-spacing: 0.03em;
+  margin-top: 0.15rem;
 }
 
 .topbar {
