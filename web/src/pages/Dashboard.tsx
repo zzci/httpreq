@@ -229,22 +229,24 @@ export default function Dashboard() {
         const traefikYaml = `certificatesResolvers:\n  letsencrypt:\n    acme:\n      email: admin@example.com\n      storage: /data/ssl/acme.json\n      dnsChallenge:\n        provider: httpreq\n        propagation:\n          disableChecks: true`;
         const dockerEnv = `LEGO_DISABLE_CNAME_SUPPORT: "true"\nHTTPREQ_ENDPOINT: "https://${apiDomain}"\nHTTPREQ_USERNAME: "${username}"\nHTTPREQ_PASSWORD: "${defaultKey.key}"`;
         return (
-          <div className="config-sections">
-            <div className="config-section">
-              <div className="config-label">Environment Variables <CopyBtn text={legoEnv} /></div>
-              <pre className="config-pre">{legoEnv}</pre>
-            </div>
-            <div className="config-section">
-              <div className="config-label">lego Command <CopyBtn text={legoCmd} /></div>
-              <pre className="config-pre">{legoCmd}</pre>
-            </div>
-            <div className="config-section">
-              <div className="config-label">Traefik — traefik.yml <CopyBtn text={traefikYaml} /></div>
-              <pre className="config-pre">{traefikYaml}</pre>
-            </div>
-            <div className="config-section">
-              <div className="config-label">Traefik — docker-compose environment <CopyBtn text={dockerEnv} /></div>
-              <pre className="config-pre">{dockerEnv}</pre>
+          <div className="card tab-card">
+            <div className="config-sections">
+              <div className="config-section">
+                <div className="config-label">Environment Variables <CopyBtn text={legoEnv} /></div>
+                <pre className="config-pre">{legoEnv}</pre>
+              </div>
+              <div className="config-section">
+                <div className="config-label">lego Command <CopyBtn text={legoCmd} /></div>
+                <pre className="config-pre">{legoCmd}</pre>
+              </div>
+              <div className="config-section">
+                <div className="config-label">Traefik — traefik.yml <CopyBtn text={traefikYaml} /></div>
+                <pre className="config-pre">{traefikYaml}</pre>
+              </div>
+              <div className="config-section">
+                <div className="config-label">Traefik — docker-compose environment <CopyBtn text={dockerEnv} /></div>
+                <pre className="config-pre">{dockerEnv}</pre>
+              </div>
             </div>
           </div>
         );
