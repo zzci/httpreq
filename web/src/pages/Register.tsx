@@ -30,37 +30,28 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-container">
-      <h1>httpdns</h1>
-      <h2>Register</h2>
-      {error && <div className="error">{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password (min 6 chars)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      <p className="auth-link">
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
-      <div className="auth-footer">
-        <a href="https://github.com/zzci/httpdns" target="_blank" rel="noreferrer">GitHub</a>
-        <span> · </span>
-        <a href="/llms.txt" target="_blank">llms.txt</a>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">http<span>dns</span></div>
+        <div className="auth-subtitle">Create a new account</div>
+        {error && <div className="error">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <input type="text" placeholder="Username" value={username}
+            onChange={(e) => setUsername(e.target.value)} required autoFocus />
+          <input type="password" placeholder="Password (min 6 chars)" value={password}
+            onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Creating...' : 'Create account'}
+          </button>
+        </form>
+        <p className="auth-link">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+        <div className="auth-footer">
+          <a href="https://github.com/zzci/httpdns" target="_blank" rel="noreferrer">GitHub</a>
+          <span>&middot;</span>
+          <a href="/llms.txt" target="_blank">llms.txt</a>
+        </div>
       </div>
     </div>
   );

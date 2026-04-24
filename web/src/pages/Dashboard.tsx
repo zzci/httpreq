@@ -4,7 +4,7 @@ import { api } from '../api';
 import type { Domain, TXTRecord } from '../api';
 import { clearToken } from '../auth';
 
-function CopyButton({ text }: { text: string }) {
+function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text).then(() => {
@@ -13,8 +13,8 @@ function CopyButton({ text }: { text: string }) {
     });
   };
   return (
-    <button className="btn-copy" onClick={handleCopy} title="Copy">
-      {copied ? 'Copied' : 'Copy'}
+    <button className="btn-sm btn-copy" onClick={handleCopy}>
+      {copied ? 'Copied!' : 'Copy'}
     </button>
   );
 }
@@ -22,7 +22,6 @@ function CopyButton({ text }: { text: string }) {
 export default function Dashboard() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [records, setRecords] = useState<TXTRecord[]>([]);
-  const [baseDomain, setBaseDomain] = useState('');
   const [apiDomain, setApiDomain] = useState('');
   const [username, setUsername] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -41,7 +40,6 @@ export default function Dashboard() {
       ]);
       setDomains(doms || []);
       setRecords(recs || []);
-      setBaseDomain(info.base_domain);
       setApiDomain(info.api_domain);
       setUsername(profile.username);
       setApiKey(profile.api_key);
@@ -57,9 +55,7 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleAddDomain = async (e: FormEvent) => {
     e.preventDefault();
@@ -86,7 +82,7 @@ export default function Dashboard() {
   };
 
   const handleRegenerateKey = async () => {
-    if (!confirm('Regenerate API Key? Existing integrations using the old key will stop working.')) return;
+    if (!confirm('Regenerate API Key? Existing integrations will stop working.')) return;
     try {
       const res = await api.regenerateKey();
       setApiKey(res.api_key);
@@ -95,75 +91,73 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    clearToken();
-    navigate('/login');
-  };
-
-  if (loading) return <div className="container"><p>Loading...</p></div>;
+  if (loading) return <div className="loading">Loading...</div>;
 
   return (
-    <div className="container">
-      <div className="header">
-        <h1>httpdns</h1>
-        <button className="btn-logout" onClick={handleLogout}>Logout</button>
+    <div className="dashboard">
+      <div className="topbar">
+        <div className="topbar-logo">http<span>dns</span></div>
+        <div className="topbar-actions">
+          <span className="topbar-user">{username}</span>
+          <button className="btn-ghost" onClick={() => { clearToken(); navigate('/login'); }}>
+            Logout
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
 
-      <div className="section">
-        <h2>API Credentials</h2>
-        <div className="info-box">
-          <strong>Username:</strong> <code>{username}</code> <CopyButton text={username} /><br />
-          <strong>API Key:</strong> <code>{apiKey}</code> <CopyButton text={apiKey} />
-          <button className="btn-regen" onClick={handleRegenerateKey}>Regenerate</button>
+      {/* API Credentials */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">API Credentials</span>
+        </div>
+        <div className="card-body">
+          <div className="cred-row">
+            <span className="cred-label">Username</span>
+            <span className="cred-value">{username}</span>
+            <CopyBtn text={username} />
+          </div>
+          <div className="cred-row">
+            <span className="cred-label">API Key</span>
+            <span className="cred-value">{apiKey}</span>
+            <CopyBtn text={apiKey} />
+            <button className="btn-sm btn-regen" onClick={handleRegenerateKey}>Regenerate</button>
+          </div>
         </div>
       </div>
 
-      <div className="section">
-        <h2>My Domains</h2>
+      {/* Domains */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Domains</span>
+        </div>
         <form className="add-form" onSubmit={handleAddDomain}>
-          <input
-            type="text"
-            placeholder="example.com"
-            value={newDomain}
-            onChange={(e) => setNewDomain(e.target.value)}
-          />
-          <button type="submit">Add Domain</button>
+          <input type="text" placeholder="example.com" value={newDomain}
+            onChange={(e) => setNewDomain(e.target.value)} />
+          <button type="submit">Add</button>
         </form>
-
         <table>
           <thead>
             <tr>
               <th>Domain</th>
-              <th>Record Name</th>
-              <th>Record Value</th>
+              <th>CNAME Name</th>
+              <th>CNAME Value</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {domains.length === 0 ? (
-              <tr><td colSpan={4} className="empty">No domains yet</td></tr>
+              <tr><td colSpan={4} className="empty">No domains added yet</td></tr>
             ) : (
               domains.map((d) => {
-                const recordName = `_acme-challenge.${d.domain}`;
-                const recordValue = d.cname_target;
+                const name = `_acme-challenge.${d.domain}`;
                 return (
                   <tr key={d.domain}>
                     <td>{d.domain}</td>
-                    <td>
-                      <code>{recordName}</code>
-                      <CopyButton text={recordName} />
-                    </td>
-                    <td>
-                      <code>{recordValue}</code>
-                      <CopyButton text={recordValue} />
-                    </td>
-                    <td>
-                      <button className="btn-delete" onClick={() => handleRemoveDomain(d.domain)}>
-                        Delete
-                      </button>
-                    </td>
+                    <td><code>{name}</code> <CopyBtn text={name} /></td>
+                    <td><code>{d.cname_target}</code> <CopyBtn text={d.cname_target} /></td>
+                    <td><button className="btn-sm btn-delete" onClick={() => handleRemoveDomain(d.domain)}>Delete</button></td>
                   </tr>
                 );
               })
@@ -172,15 +166,14 @@ export default function Dashboard() {
         </table>
       </div>
 
-      <div className="section">
-        <h2>Active TXT Records</h2>
+      {/* TXT Records */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Active TXT Records</span>
+        </div>
         <table>
           <thead>
-            <tr>
-              <th>Domain</th>
-              <th>Value</th>
-              <th>Last Update</th>
-            </tr>
+            <tr><th>Domain</th><th>Value</th><th>Updated</th></tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
@@ -198,18 +191,29 @@ export default function Dashboard() {
         </table>
       </div>
 
-      <div className="section">
-        <h2>httpreq Configuration</h2>
-        <div className="info-box">
-          Use with <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">lego httpreq</a> provider:<br />
-          <code>HTTPREQ_ENDPOINT=https://{apiDomain}</code>
-          <CopyButton text={`HTTPREQ_ENDPOINT=https://${apiDomain}`} /><br />
-          <code>HTTPREQ_USERNAME={username}</code>
-          <CopyButton text={`HTTPREQ_USERNAME=${username}`} /><br />
-          <code>HTTPREQ_PASSWORD={apiKey}</code>
-          <CopyButton text={`HTTPREQ_PASSWORD=${apiKey}`} /><br />
-          <code>LEGO_DISABLE_CNAME_SUPPORT=true</code>
-          <CopyButton text="LEGO_DISABLE_CNAME_SUPPORT=true" />
+      {/* httpreq Config */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">httpreq Configuration</span>
+        </div>
+        <div className="config-block">
+          Configure <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">lego httpreq</a> with these environment variables:
+          <div className="config-line">
+            <code>HTTPREQ_ENDPOINT=https://{apiDomain}</code>
+            <CopyBtn text={`HTTPREQ_ENDPOINT=https://${apiDomain}`} />
+          </div>
+          <div className="config-line">
+            <code>HTTPREQ_USERNAME={username}</code>
+            <CopyBtn text={`HTTPREQ_USERNAME=${username}`} />
+          </div>
+          <div className="config-line">
+            <code>HTTPREQ_PASSWORD={apiKey}</code>
+            <CopyBtn text={`HTTPREQ_PASSWORD=${apiKey}`} />
+          </div>
+          <div className="config-line">
+            <code>LEGO_DISABLE_CNAME_SUPPORT=true</code>
+            <CopyBtn text="LEGO_DISABLE_CNAME_SUPPORT=true" />
+          </div>
         </div>
       </div>
     </div>

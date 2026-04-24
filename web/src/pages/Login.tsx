@@ -26,36 +26,28 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
-      <h1>httpdns</h1>
-      <h2>Login</h2>
-      {error && <div className="error">{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-      <p className="auth-link">
-        No account? <Link to="/register">Register</Link>
-      </p>
-      <div className="auth-footer">
-        <a href="https://github.com/zzci/httpdns" target="_blank" rel="noreferrer">GitHub</a>
-        <span> · </span>
-        <a href="/llms.txt" target="_blank">llms.txt</a>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">http<span>dns</span></div>
+        <div className="auth-subtitle">Sign in to your account</div>
+        {error && <div className="error">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <input type="text" placeholder="Username" value={username}
+            onChange={(e) => setUsername(e.target.value)} required autoFocus />
+          <input type="password" placeholder="Password" value={password}
+            onChange={(e) => setPassword(e.target.value)} required />
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+        <p className="auth-link">
+          No account? <Link to="/register">Create one</Link>
+        </p>
+        <div className="auth-footer">
+          <a href="https://github.com/zzci/httpdns" target="_blank" rel="noreferrer">GitHub</a>
+          <span>&middot;</span>
+          <a href="/llms.txt" target="_blank">llms.txt</a>
+        </div>
       </div>
     </div>
   );
