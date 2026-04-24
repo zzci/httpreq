@@ -185,11 +185,66 @@ DELETE /admin/domains/:domain → 204
 GET /admin/records → [{domain, value, last_update}]
 ```
 
-### 7. Utility
+### 7. Server Info & Provider Detection
+
+```
+GET /api/info
+→ 200 {
+  "provider": "zzci-httpreq",
+  "base_domain": "s.dnsall.com",
+  "api_domain": "api.dnsall.com",
+  "capabilities": ["multi_key","scoped_key","domain_management","wildcard_scope","account_deletion"]
+}
+```
+
+### 8. Utility
 
 ```
 GET /health → 200
 GET /llms.txt → this document
+```
+
+## Client Implementation Guide — Provider Detection
+
+zzci-httpreq is a superset of the standard httpreq protocol. Clients SHOULD detect the provider
+before using extended features, so they remain compatible with plain httpreq servers.
+
+### Recommended flow:
+
+```
+1. GET /api/info
+2. If response contains "provider": "zzci-httpreq":
+   → Use extended API (register, manage keys, add domains via API key)
+3. If /api/info returns 404 or no "provider" field:
+   → Standard httpreq server, only /present and /cleanup available
+4. Check "capabilities" array for specific features:
+   - "domain_management" → POST/DELETE /api/domains available
+   - "multi_key" → POST /api/keys available
+   - "scoped_key" → scope field in key creation supported
+   - "wildcard_scope" → *.example.com patterns supported
+   - "account_deletion" → DELETE /api/profile available
+```
+
+### Example client pseudocode:
+
+```python
+info = GET(f"{endpoint}/api/info")
+
+if info.get("provider") == "zzci-httpreq":
+    # Extended mode: register, add domain, get key — all via API
+    if not has_credentials():
+        result = POST(f"{endpoint}/api/register", {"username": gen_user(), "password": gen_pass()})
+        save_api_key(result["api_key"])
+
+    if "domain_management" in info.get("capabilities", []):
+        POST(f"{endpoint}/api/domains", {"domain": target_domain},
+             headers={"Authorization": f"Bearer {api_key}"})
+
+    # Then use standard httpreq for certificate issuance
+    present(fqdn, value, username, api_key)
+else:
+    # Standard httpreq: just present/cleanup with pre-configured credentials
+    present(fqdn, value, username, password)
 ```
 
 ## Traefik Integration

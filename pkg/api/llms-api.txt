@@ -102,7 +102,15 @@ Authorization: Bearer {api_key}
 → 204 (deletes account, all keys, domains, and TXT records)
 
 GET https://api.dnsall.com/api/info
-→ {"base_domain": "s.dnsall.com", "api_domain": "api.dnsall.com"}
+→ {"provider":"zzci-httpreq","base_domain":"s.dnsall.com","api_domain":"api.dnsall.com",
+   "capabilities":["multi_key","scoped_key","domain_management","wildcard_scope","account_deletion"]}
+
+## Provider Detection
+
+Clients should check `GET /api/info` before using extended features:
+- If `provider` is `"zzci-httpreq"` → extended API available (keys, domains, accounts)
+- If 404 or no `provider` field → standard httpreq, only /present and /cleanup
+- Check `capabilities` array for specific feature support
 ```
 
 ## DNS Challenge (httpreq protocol)

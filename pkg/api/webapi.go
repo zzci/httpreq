@@ -226,9 +226,17 @@ func (a *API) apiInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	if apiDomain == "" {
 		apiDomain = a.Config.General.Domain
 	}
-	jsonResp(w, http.StatusOK, map[string]string{
+	jsonResp(w, http.StatusOK, map[string]interface{}{
+		"provider":    "zzci-httpreq",
 		"base_domain": a.Config.General.Domain,
 		"api_domain":  apiDomain,
+		"capabilities": []string{
+			"multi_key",
+			"scoped_key",
+			"domain_management",
+			"wildcard_scope",
+			"account_deletion",
+		},
 	})
 }
 
