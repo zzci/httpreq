@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { setToken } from '../auth';
@@ -9,6 +9,8 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Create Account — httpreq'; }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,15 +35,16 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">http<span>req</span></div>
-        <div className="auth-subtitle">Create a new account</div>
+        <div className="auth-tagline">ACME DNS Challenge Server</div>
+        <div className="auth-subtitle">Create an account to get started</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <input type="text" placeholder="Username" value={username}
+          <input type="text" placeholder="Choose a username" value={username}
             onChange={(e) => setUsername(e.target.value)} required autoFocus />
-          <input type="password" placeholder="Password (min 6 chars)" value={password}
+          <input type="password" placeholder="Create a password (min 6 chars)" value={password}
             onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Creating...' : 'Create account'}
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
         <p className="auth-link">
@@ -50,7 +53,9 @@ export default function Register() {
         <div className="auth-footer">
           <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
           <span>&middot;</span>
-          <a href="/llms.txt" target="_blank">llms.txt</a>
+          <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">Docs</a>
+          <span>&middot;</span>
+          <a href="/llms.txt" target="_blank">API</a>
         </div>
       </div>
     </div>

@@ -56,6 +56,7 @@ export default function Dashboard() {
   }, [navigate]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { document.title = 'Dashboard — httpreq'; }, []);
 
   const handleAddDomain = async (e: FormEvent) => {
     e.preventDefault(); setError('');

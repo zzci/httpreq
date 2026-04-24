@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { setToken } from '../auth';
@@ -9,6 +9,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Sign In — httpreq'; }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,8 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">http<span>req</span></div>
-        <div className="auth-subtitle">Sign in to your account</div>
+        <div className="auth-tagline">ACME DNS Challenge Server</div>
+        <div className="auth-subtitle">Sign in to manage your domains and certificates</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <input type="text" placeholder="Username" value={username}
@@ -41,12 +44,14 @@ export default function Login() {
           </button>
         </form>
         <p className="auth-link">
-          No account? <Link to="/register">Create one</Link>
+          Don't have an account? <Link to="/register">Create one</Link>
         </p>
         <div className="auth-footer">
           <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
           <span>&middot;</span>
-          <a href="/llms.txt" target="_blank">llms.txt</a>
+          <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">Docs</a>
+          <span>&middot;</span>
+          <a href="/llms.txt" target="_blank">API</a>
         </div>
       </div>
     </div>

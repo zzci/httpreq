@@ -68,8 +68,17 @@ body {
 
 .auth-logo span { color: var(--blue-600); }
 
+.auth-tagline {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--blue-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
 .auth-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--slate-400);
   margin-bottom: 1.75rem;
 }
