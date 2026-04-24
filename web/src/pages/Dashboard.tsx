@@ -82,10 +82,26 @@ export default function Dashboard() {
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to remove domain'); }
   };
 
+  const dedupeScopes = (scopes: string[]): string[] => {
+    const normalized = scopes.map(s => s.trim().toLowerCase()).filter(Boolean);
+    const result: string[] = [];
+    for (const s of normalized) {
+      const root = s.startsWith('*.') ? s.slice(2) : s;
+      const wildcard = '*.' + root;
+      // If *.root exists, it covers root — keep only wildcard
+      if (normalized.includes(wildcard)) {
+        if (!result.includes(wildcard)) result.push(wildcard);
+      } else {
+        if (!result.includes(s)) result.push(s);
+      }
+    }
+    return result;
+  };
+
   const handleCreateKey = async (e: FormEvent) => {
     e.preventDefault(); setError('');
     if (!newKeyName.trim()) return;
-    const scope = newKeyScopes.map(s => s.trim().toLowerCase()).filter(Boolean);
+    const scope = dedupeScopes(newKeyScopes);
     try {
       await api.createKey(newKeyName.trim(), scope.length > 0 ? scope : ['*']);
       setNewKeyName(''); setNewKeyScopes(['']); setShowAddKey(false); await loadData();
@@ -147,7 +163,11 @@ export default function Dashboard() {
           <form className="modal-form" onSubmit={handleCreateKey}>
             <input type="text" placeholder="Key name" value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)} autoFocus />
-            <div className="scope-label">Scope <span className="scope-hint">Leave empty for global access</span></div>
+            <div className="scope-label">
+              Scope
+              <span className="scope-help" title="Define which domains this key can access.&#10;&#10;• Leave empty = global (all domains)&#10;• *.example.com = example.com and all subdomains&#10;• example.com = exact domain only&#10;&#10;Note: *.example.com already covers example.com, no need to add both.">?</span>
+              <span className="scope-hint">Leave empty for global access</span>
+            </div>
             <div className="scope-list">
               {newKeyScopes.map((s, i) => (
                 <div className="scope-row" key={i}>

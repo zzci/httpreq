@@ -327,6 +327,21 @@ body {
   color: var(--slate-700);
 }
 
+.scope-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--slate-200);
+  color: var(--slate-500);
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 0.3rem;
+}
+
 .scope-hint {
   font-weight: 400;
   color: var(--slate-400);
