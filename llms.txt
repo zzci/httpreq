@@ -81,48 +81,46 @@ lego --dns httpreq --dns.propagation-disable-ans \
 
 ### 1. Account Management (no auth / JWT only)
 
-Account credentials (username + password) are the last resort for key recovery. All other operations should use API keys.
+Account credentials (username + password) are only for web dashboard login and key recovery.
+After login, use `GET /api/keys` to retrieve API keys for all other operations.
 
 ```
 POST /api/register
 {"username": "myuser", "password": "mypassword"}
-→ 201 {"token": "jwt...", "username": "myuser", "api_key": "abc123..."}
+→ 201 {"token": "jwt...", "username": "myuser"}
 
 POST /api/login
 {"username": "myuser", "password": "mypassword"}
-→ 200 {"token": "jwt...", "username": "myuser", "api_key": "abc123..."}
+→ 200 {"token": "jwt...", "username": "myuser"}
 
 GET /api/profile
-Authorization: Bearer {jwt_or_api_key}
-→ 200 {"username": "myuser", "api_key": "abc123..."}
+Authorization: Bearer {jwt_or_global_key}
+→ 200 {"username": "myuser"}
 
 DELETE /api/profile
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 204 (deletes account, all keys, domains, and TXT records)
-
-GET /api/info
-→ 200 {"base_domain": "s.dnsall.com", "api_domain": "api.dnsall.com"}
 ```
 
-### 2. API Key Management (JWT or API key Bearer)
+### 2. API Key Management (JWT or global key only — scoped keys cannot access)
 
 ```
 GET /api/keys
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 200 [{"id":1,"name":"Default","key":"abc123...","scope":["*"],"created_at":...}]
 
 POST /api/keys
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 {"name": "CI Server", "scope": ["*.example.com"]}
 → 201 {"id":2,"name":"CI Server","key":"xyz789...","scope":["*.example.com"],"created_at":...}
 
 POST /api/keys   (global key)
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 {"name": "Full Access"}
 → 201 {"id":3,"name":"Full Access","key":"def456...","scope":["*"],"created_at":...}
 
 DELETE /api/keys/:id
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 204
 ```
 
@@ -132,16 +130,16 @@ API keys can manage domains directly. Scoped keys can only see/add/delete domain
 
 ```
 GET /api/domains
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 200 [{"domain":"example.com","subdomain":"a1b2c3d4","cname_target":"a1b2c3d4.s.dnsall.com"}]
 
 POST /api/domains
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 {"domain": "example.com"}
 → 201 {"domain":"example.com","subdomain":"a1b2c3d4","cname_target":"a1b2c3d4.s.dnsall.com"}
 
 DELETE /api/domains/:domain
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 204
 ```
 
@@ -149,7 +147,7 @@ Authorization: Bearer {jwt_or_api_key}
 
 ```
 GET /api/records
-Authorization: Bearer {jwt_or_api_key}
+Authorization: Bearer {jwt_or_global_key}
 → 200 [{"domain":"a1b2c3d4.s.dnsall.com","value":"challenge-token","last_update":"..."}]
 ```
 
@@ -187,6 +185,7 @@ GET /admin/records → [{domain, value, last_update}]
 GET /api/info
 → 200 {
   "provider": "ns-httpreq",
+  "version": "v1.3.0",
   "base_domain": "s.dnsall.com",
   "api_domain": "api.dnsall.com",
   "capabilities": ["multi_key","scoped_key","domain_management","wildcard_scope","account_deletion"]
@@ -280,6 +279,7 @@ HTTPREQ_PASSWORD: "{api_key}"
 | missing_fqdn_or_value | /present or /cleanup missing required fields |
 | invalid_json | Malformed JSON body |
 | db_error | Database operation failed |
+| global_key_required | Scoped key tried to access profile/keys management (requires JWT or global key) |
 | admin_key_not_configured | Admin API not enabled |
 | invalid_admin_key | Wrong admin key |
 
@@ -290,9 +290,10 @@ HTTPREQ_PASSWORD: "{api_key}"
 3. **Credentials come from the user**: Ask the user for HTTPREQ_USERNAME and HTTPREQ_PASSWORD (api_key), never generate them.
 4. **Domain management via API key**: With a global key, clients can add/delete domains via `POST /api/domains` — no web UI needed for this step.
 5. **Global vs scoped keys**: Users create scoped keys (`*.example.com`) for CI/CD systems that only need access to specific domains.
-6. **Scoped key auto-expand**: When a scoped key adds a new domain matching its scope pattern, the domain is automatically added to the key's scope.
-7. **LEGO_DISABLE_CNAME_SUPPORT=true**: Required when using CNAME delegation, prevents lego from rewriting the FQDN.
-8. **--dns.propagation-disable-ans**: Required because TXT records are on the httpreq DNS server, not the domain's authoritative NS.
-9. **Wildcard certs**: `*.example.com` and `example.com` both use `_acme-challenge.example.com` — same CNAME, lego handles both automatically.
-10. **Deterministic subdomains**: `hash(username:domain)` produces the same subdomain each time — CNAME records survive database rebuilds.
-11. **Account deletion**: `DELETE /api/profile` is for test cleanup only, not for production use.
+6. **Scoped key restrictions**: Scoped keys cannot access `/api/profile`, `/api/keys`, or delete accounts. Only JWT or global keys can manage keys and account settings.
+7. **Scoped key auto-expand**: When a scoped key adds a new domain matching its scope pattern, the domain is automatically added to the key's scope.
+8. **LEGO_DISABLE_CNAME_SUPPORT=true**: Required when using CNAME delegation, prevents lego from rewriting the FQDN.
+9. **--dns.propagation-disable-ans**: Required because TXT records are on the httpreq DNS server, not the domain's authoritative NS.
+10. **Wildcard certs**: `*.example.com` and `example.com` both use `_acme-challenge.example.com` — same CNAME, lego handles both automatically.
+11. **Deterministic subdomains**: `hash(username:domain)` produces the same subdomain each time — CNAME records survive database rebuilds.
+12. **Account deletion**: `DELETE /api/profile` is for test cleanup only, not for production use.

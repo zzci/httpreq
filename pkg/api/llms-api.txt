@@ -85,11 +85,11 @@ Authorization: Bearer {api_key}
 ```
 POST https://api.dnsall.com/api/login
 {"username": "myuser", "password": "mypassword"}
-→ {"token": "jwt...", "api_key": "abc..."}
+→ {"token": "jwt...", "username": "myuser"}
 
 GET https://api.dnsall.com/api/profile
-Authorization: Bearer {api_key}
-→ {"username": "myuser", "api_key": "abc..."}
+Authorization: Bearer {jwt_or_global_key}
+→ {"username": "myuser"}
 
 DELETE https://api.dnsall.com/api/profile
 Authorization: Bearer {api_key}
