@@ -70,7 +70,13 @@ func registerAndLogin(e *httpexpect.Expect, username, password string) (token, a
 	resp := e.POST("/api/register").
 		WithJSON(map[string]string{"username": username, "password": password}).
 		Expect().Status(http.StatusCreated).JSON().Object()
-	return resp.Value("token").String().Raw(), resp.Value("api_key").String().Raw()
+	token = resp.Value("token").String().Raw()
+	// Get Default API key from /api/keys
+	keys := e.GET("/api/keys").
+		WithHeader("Authorization", "Bearer "+token).
+		Expect().Status(http.StatusOK).JSON().Array()
+	apiKey = keys.Element(0).Object().Value("key").String().Raw()
+	return
 }
 
 func TestApiRegisterAndLogin(t *testing.T) {

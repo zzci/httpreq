@@ -23,12 +23,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export interface AuthResponse {
   token: string;
   username: string;
-  api_key: string;
 }
 
 export interface ProfileResponse {
   username: string;
-  api_key: string;
 }
 
 export interface Domain {
@@ -96,9 +94,6 @@ export const api = {
     request<void>(`/api/keys/${id}`, { method: 'DELETE' }),
 
   getProfile: () => request<ProfileResponse>('/api/profile'),
-
-  regenerateKey: () =>
-    request<{ api_key: string }>('/api/profile/regenerate-key', { method: 'POST' }),
 
   getInfo: () => request<InfoResponse>('/api/info'),
 };

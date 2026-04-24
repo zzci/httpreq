@@ -16,7 +16,6 @@ type DB interface {
 	CreateUser(username, passwordHash string) (User, error)
 	GetUserByUsername(username string) (User, error)
 	GetUserByID(id int64) (User, error)
-	RegenerateAPIKey(userID int64) (string, error)
 
 	// Domain management
 	AddUserDomain(userID int64, username, domain string) (UserDomain, error)

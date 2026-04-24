@@ -56,7 +56,7 @@ var usersTable = `
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
-		api_key TEXT UNIQUE NOT NULL,
+		api_key TEXT DEFAULT '',
 		created_at INT NOT NULL
 	);`
 
@@ -65,7 +65,7 @@ var usersTablePG = `
 		id SERIAL PRIMARY KEY,
 		username TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
-		api_key TEXT UNIQUE NOT NULL,
+		api_key TEXT DEFAULT '',
 		created_at INT NOT NULL
 	);`
 
@@ -518,16 +518,16 @@ func (d *acmednsdb) CreateUser(username, passwordHash string) (httpreq.User, err
 
 	var id int64
 	if d.Config.Database.Engine == "sqlite" {
-		result, execErr := tx.Exec("INSERT INTO users (username, password_hash, api_key, created_at) VALUES (?, ?, ?, ?)",
-			username, passwordHash, apiKey, now)
+		result, execErr := tx.Exec("INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+			username, passwordHash, now)
 		if execErr != nil {
 			err = fmt.Errorf("failed to create user: %w", execErr)
 			return httpreq.User{}, err
 		}
 		id, _ = result.LastInsertId()
 	} else {
-		execErr := tx.QueryRow("INSERT INTO users (username, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
-			username, passwordHash, apiKey, now).Scan(&id)
+		execErr := tx.QueryRow("INSERT INTO users (username, password_hash, created_at) VALUES ($1, $2, $3) RETURNING id",
+			username, passwordHash, now).Scan(&id)
 		if execErr != nil {
 			err = fmt.Errorf("failed to create user: %w", execErr)
 			return httpreq.User{}, err
@@ -544,18 +544,18 @@ func (d *acmednsdb) CreateUser(username, passwordHash string) (httpreq.User, err
 		return httpreq.User{}, err
 	}
 
-	return httpreq.User{ID: id, Username: username, PasswordHash: passwordHash, APIKey: apiKey, CreatedAt: now}, nil
+	return httpreq.User{ID: id, Username: username, PasswordHash: passwordHash, CreatedAt: now}, nil
 }
 
 func (d *acmednsdb) GetUserByUsername(username string) (httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	var u httpreq.User
-	getSQL := `SELECT id, username, password_hash, api_key, created_at FROM users WHERE username=$1`
+	getSQL := `SELECT id, username, password_hash, created_at FROM users WHERE username=$1`
 	if d.Config.Database.Engine == "sqlite" {
 		getSQL = getSQLiteStmt(getSQL)
 	}
-	err := d.DB.QueryRow(getSQL, username).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.APIKey, &u.CreatedAt)
+	err := d.DB.QueryRow(getSQL, username).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
 	if err != nil {
 		return u, fmt.Errorf("user not found: %w", err)
 	}
@@ -566,37 +566,15 @@ func (d *acmednsdb) GetUserByID(id int64) (httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	var u httpreq.User
-	getSQL := `SELECT id, username, password_hash, api_key, created_at FROM users WHERE id=$1`
+	getSQL := `SELECT id, username, password_hash, created_at FROM users WHERE id=$1`
 	if d.Config.Database.Engine == "sqlite" {
 		getSQL = getSQLiteStmt(getSQL)
 	}
-	err := d.DB.QueryRow(getSQL, id).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.APIKey, &u.CreatedAt)
+	err := d.DB.QueryRow(getSQL, id).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
 	if err != nil {
 		return u, fmt.Errorf("user not found: %w", err)
 	}
 	return u, nil
-}
-
-func (d *acmednsdb) RegenerateAPIKey(userID int64) (string, error) {
-	d.Mutex.Lock()
-	defer d.Mutex.Unlock()
-	newKey := httpreq.GenerateAPIKey()
-	// Update users table
-	updSQL := `UPDATE users SET api_key=$1 WHERE id=$2`
-	if d.Config.Database.Engine == "sqlite" {
-		updSQL = getSQLiteStmt(updSQL)
-	}
-	_, err := d.DB.Exec(updSQL, newKey, userID)
-	if err != nil {
-		return "", fmt.Errorf("failed to regenerate api key: %w", err)
-	}
-	// Update the Default key in api_keys table
-	updKeySQL := `UPDATE api_keys SET key_value=$1 WHERE user_id=$2 AND name='Default'`
-	if d.Config.Database.Engine == "sqlite" {
-		updKeySQL = getSQLiteStmt(updKeySQL)
-	}
-	_, _ = d.DB.Exec(updKeySQL, newKey, userID)
-	return newKey, nil
 }
 
 // --- Domain methods ---
@@ -702,14 +680,14 @@ func (d *acmednsdb) ListUsers() ([]httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	var users []httpreq.User
-	rows, err := d.DB.Query("SELECT id, username, password_hash, api_key, created_at FROM users ORDER BY id")
+	rows, err := d.DB.Query("SELECT id, username, password_hash, created_at FROM users ORDER BY id")
 	if err != nil {
 		return users, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var u httpreq.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.APIKey, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt); err != nil {
 			return users, err
 		}
 		users = append(users, u)

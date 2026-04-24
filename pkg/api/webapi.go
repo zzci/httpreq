@@ -18,7 +18,6 @@ type registerRequest struct {
 type loginResponse struct {
 	Token    string `json:"token"`
 	Username string `json:"username"`
-	APIKey   string `json:"api_key"`
 }
 
 type addDomainRequest struct {
@@ -53,7 +52,7 @@ func (a *API) apiRegister(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "token_error"})
 		return
 	}
-	jsonResp(w, http.StatusCreated, loginResponse{Token: token, Username: user.Username, APIKey: user.APIKey})
+	jsonResp(w, http.StatusCreated, loginResponse{Token: token, Username: user.Username})
 }
 
 // POST /api/login
@@ -78,7 +77,7 @@ func (a *API) apiLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "token_error"})
 		return
 	}
-	jsonResp(w, http.StatusOK, loginResponse{Token: token, Username: user.Username, APIKey: user.APIKey})
+	jsonResp(w, http.StatusOK, loginResponse{Token: token, Username: user.Username})
 }
 
 // GET /api/profile
@@ -86,19 +85,7 @@ func (a *API) apiProfile(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	user, _ := getUserFromContext(r)
 	jsonResp(w, http.StatusOK, map[string]interface{}{
 		"username": user.Username,
-		"api_key":  user.APIKey,
 	})
-}
-
-// POST /api/profile/regenerate-key
-func (a *API) apiRegenerateKey(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	user, _ := getUserFromContext(r)
-	newKey, err := a.DB.RegenerateAPIKey(user.ID)
-	if err != nil {
-		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "db_error"})
-		return
-	}
-	jsonResp(w, http.StatusOK, map[string]string{"api_key": newKey})
 }
 
 // DELETE /api/profile

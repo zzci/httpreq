@@ -64,7 +64,6 @@ func (a *API) Start(dnsservers []httpreq.NS) {
 	router.GET("/api/info", a.apiInfo)
 	// Sensitive — JWT or global key only
 	router.GET("/api/profile", a.JWTOrGlobalKeyAuth(a.apiProfile))
-	router.POST("/api/profile/regenerate-key", a.JWTOrGlobalKeyAuth(a.apiRegenerateKey))
 	router.DELETE("/api/profile", a.JWTOrGlobalKeyAuth(a.apiDeleteAccount))
 	router.GET("/api/keys", a.JWTOrGlobalKeyAuth(a.apiListKeys))
 	router.POST("/api/keys", a.JWTOrGlobalKeyAuth(a.apiCreateKey))
