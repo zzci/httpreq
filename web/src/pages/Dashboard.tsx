@@ -95,7 +95,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="topbar">
-        <div className="topbar-logo">http<span>req</span></div>
+        <div className="topbar-logo">HTTPREQ</div>
         <div className="topbar-actions">
           <span className="topbar-user">{username}</span>
           <button className="btn-ghost" onClick={() => { clearToken(); navigate('/login'); }}>Logout</button>

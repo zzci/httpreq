@@ -30,7 +30,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">http<span>req</span></div>
+        <div className="auth-logo">HTTPREQ</div>
         <div className="auth-tagline">ACME httpreq Server</div>
         <div className="auth-subtitle">Sign in to manage your domains</div>
         {error && <div className="error">{error}</div>}
