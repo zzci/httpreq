@@ -101,6 +101,25 @@ func (a *API) apiRegenerateKey(w http.ResponseWriter, r *http.Request, _ httprou
 	jsonResp(w, http.StatusOK, map[string]string{"api_key": newKey})
 }
 
+// DELETE /api/profile
+func (a *API) apiDeleteAccount(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	user, _ := getUserFromContext(r)
+	// Clean up TXT records for all user domains
+	domains, _ := a.DB.GetUserDomains(user.ID)
+	for _, d := range domains {
+		internalDomain := httpdns.InternalDomain(d.Subdomain, a.Config.General.Domain)
+		txts, _ := a.DB.GetTXTForDomain(internalDomain)
+		for _, v := range txts {
+			_ = a.DB.CleanupTXT(internalDomain, v)
+		}
+	}
+	if err := a.DB.DeleteUser(user.ID); err != nil {
+		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "db_error"})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GET /api/domains
 func (a *API) apiGetDomains(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	user, _ := getUserFromContext(r)

@@ -64,6 +64,10 @@ Authorization: Bearer {token}
 POST https://api.dnsall.com/api/profile/regenerate-key
 Authorization: Bearer {token}
 → {"api_key": "newkey..."}
+
+DELETE https://api.dnsall.com/api/profile
+Authorization: Bearer {token}
+→ 204 (deletes account, all domains, and associated TXT records)
 ```
 
 ### DNS Challenge (Basic Auth: username + api_key)
