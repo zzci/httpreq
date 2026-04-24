@@ -224,10 +224,10 @@ export default function Dashboard() {
 
       {/* Config Tab */}
       {tab === 'config' && defaultKey && (() => {
-        const legoEnv = `HTTPREQ_ENDPOINT=https://${apiDomain}\nHTTPREQ_USERNAME=${username}\nHTTPREQ_PASSWORD=${defaultKey.key}\nLEGO_DISABLE_CNAME_SUPPORT=true`;
+        const legoEnv = `HTTPREQ_ENDPOINT=https://${apiDomain}\nHTTPREQ_USERNAME=${username}\nHTTPREQ_PASSWORD=<your-api-key>\nLEGO_DISABLE_CNAME_SUPPORT=true`;
         const legoCmd = `lego --dns httpreq --dns.propagation-disable-ans \\\n  --domains example.com --domains "*.example.com" \\\n  --email admin@example.com --accept-tos run`;
         const traefikYaml = `certificatesResolvers:\n  letsencrypt:\n    acme:\n      email: admin@example.com\n      storage: /data/ssl/acme.json\n      dnsChallenge:\n        provider: httpreq\n        propagation:\n          disableChecks: true`;
-        const dockerEnv = `LEGO_DISABLE_CNAME_SUPPORT: "true"\nHTTPREQ_ENDPOINT: "https://${apiDomain}"\nHTTPREQ_USERNAME: "${username}"\nHTTPREQ_PASSWORD: "${defaultKey.key}"`;
+        const dockerEnv = `LEGO_DISABLE_CNAME_SUPPORT: "true"\nHTTPREQ_ENDPOINT: "https://${apiDomain}"\nHTTPREQ_USERNAME: "${username}"\nHTTPREQ_PASSWORD: "<your-api-key>"`;
         return (
           <div className="card tab-card">
             <div className="config-sections">
