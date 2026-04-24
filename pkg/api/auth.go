@@ -16,46 +16,70 @@ const (
 	apiKeyContextKey contextKey = 1
 )
 
-// JWTOrKeyAuth middleware for /api/* endpoints.
-// Accepts JWT Bearer token OR API key as Bearer token.
-func (a *API) JWTOrKeyAuth(next httprouter.Handle) httprouter.Handle {
+// JWTOrGlobalKeyAuth allows JWT or global API keys only.
+// Used for sensitive endpoints: profile, keys management, account deletion.
+func (a *API) JWTOrGlobalKeyAuth(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		authHeader := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write(jsonError("missing_token"))
+		user, apiKey, ok := a.authenticateBearer(r)
+		if !ok {
+			jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-
-		// Try JWT first
-		if claims, err := a.parseToken(tokenStr); err == nil {
-			if user, err := a.DB.GetUserByID(claims.UserID); err == nil {
-				ctx := context.WithValue(r.Context(), userContextKey, user)
-				next(w, r.WithContext(ctx), p)
-				return
-			}
+		if apiKey != nil && !apiKey.IsGlobal() {
+			jsonResp(w, http.StatusForbidden, map[string]string{"error": "global_key_required"})
+			return
 		}
-
-		// Try API key
-		if apiKey, err := a.DB.GetAPIKeyByValue(tokenStr); err == nil {
-			if user, err := a.DB.GetUserByID(apiKey.UserID); err == nil {
-				ctx := context.WithValue(r.Context(), userContextKey, user)
-				ctx = context.WithValue(ctx, apiKeyContextKey, apiKey)
-				next(w, r.WithContext(ctx), p)
-				return
-			}
+		ctx := context.WithValue(r.Context(), userContextKey, user)
+		if apiKey != nil {
+			ctx = context.WithValue(ctx, apiKeyContextKey, *apiKey)
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		_, _ = w.Write(jsonError("invalid_token"))
+		next(w, r.WithContext(ctx), p)
 	}
 }
 
+// JWTOrKeyAuth allows JWT or any API key (global or scoped).
+// Used for domain operations and records — scope checks happen in handlers.
+func (a *API) JWTOrKeyAuth(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		user, apiKey, ok := a.authenticateBearer(r)
+		if !ok {
+			jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			return
+		}
+		ctx := context.WithValue(r.Context(), userContextKey, user)
+		if apiKey != nil {
+			ctx = context.WithValue(ctx, apiKeyContextKey, *apiKey)
+		}
+		next(w, r.WithContext(ctx), p)
+	}
+}
+
+// authenticateBearer extracts and validates a Bearer token (JWT or API key).
+func (a *API) authenticateBearer(r *http.Request) (httpreq.User, *httpreq.APIKey, bool) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return httpreq.User{}, nil, false
+	}
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Try JWT
+	if claims, err := a.parseToken(tokenStr); err == nil {
+		if user, err := a.DB.GetUserByID(claims.UserID); err == nil {
+			return user, nil, true
+		}
+	}
+
+	// Try API key
+	if apiKey, err := a.DB.GetAPIKeyByValue(tokenStr); err == nil {
+		if user, err := a.DB.GetUserByID(apiKey.UserID); err == nil {
+			return user, &apiKey, true
+		}
+	}
+
+	return httpreq.User{}, nil, false
+}
+
 // BasicAuthHTTPreq middleware for /present and /cleanup endpoints.
-// Looks up API key from api_keys table, falls back to users.api_key.
 func (a *API) BasicAuthHTTPreq(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		username, secret, ok := r.BasicAuth()
@@ -75,7 +99,6 @@ func (a *API) BasicAuthHTTPreq(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
-		// Try api_keys table first
 		if apiKey, err := a.DB.GetAPIKeyByValue(secret); err == nil && apiKey.UserID == user.ID {
 			ctx := context.WithValue(r.Context(), userContextKey, user)
 			ctx = context.WithValue(ctx, apiKeyContextKey, apiKey)

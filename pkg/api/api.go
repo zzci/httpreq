@@ -62,16 +62,18 @@ func (a *API) Start(dnsservers []httpreq.NS) {
 	router.POST("/api/register", a.apiRegister)
 	router.POST("/api/login", a.apiLogin)
 	router.GET("/api/info", a.apiInfo)
-	router.GET("/api/profile", a.JWTOrKeyAuth(a.apiProfile))
-	router.POST("/api/profile/regenerate-key", a.JWTOrKeyAuth(a.apiRegenerateKey))
-	router.DELETE("/api/profile", a.JWTOrKeyAuth(a.apiDeleteAccount))
+	// Sensitive — JWT or global key only
+	router.GET("/api/profile", a.JWTOrGlobalKeyAuth(a.apiProfile))
+	router.POST("/api/profile/regenerate-key", a.JWTOrGlobalKeyAuth(a.apiRegenerateKey))
+	router.DELETE("/api/profile", a.JWTOrGlobalKeyAuth(a.apiDeleteAccount))
+	router.GET("/api/keys", a.JWTOrGlobalKeyAuth(a.apiListKeys))
+	router.POST("/api/keys", a.JWTOrGlobalKeyAuth(a.apiCreateKey))
+	router.DELETE("/api/keys/:id", a.JWTOrGlobalKeyAuth(a.apiDeleteKey))
+	// Domain operations — any key (scope checked in handlers)
 	router.GET("/api/domains", a.JWTOrKeyAuth(a.apiGetDomains))
 	router.POST("/api/domains", a.JWTOrKeyAuth(a.apiAddDomain))
 	router.DELETE("/api/domains/:domain", a.JWTOrKeyAuth(a.apiRemoveDomain))
 	router.GET("/api/records", a.JWTOrKeyAuth(a.apiGetRecords))
-	router.GET("/api/keys", a.JWTOrKeyAuth(a.apiListKeys))
-	router.POST("/api/keys", a.JWTOrKeyAuth(a.apiCreateKey))
-	router.DELETE("/api/keys/:id", a.JWTOrKeyAuth(a.apiDeleteKey))
 
 	// Admin endpoints — API key auth
 	router.GET("/admin/users", a.AdminAuth(a.adminListUsers))
@@ -128,9 +130,17 @@ func (a *API) Start(dnsservers []httpreq.NS) {
 			"domain", a.Config.General.Domain)
 		err = srv.ListenAndServeTLS(a.Config.API.TLSCertFullchain, a.Config.API.TLSCertPrivkey)
 	default:
+		srv := &http.Server{
+			Addr:         host,
+			Handler:      handler,
+			ErrorLog:     stderrorlog,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  120 * time.Second,
+		}
 		a.Logger.Infow("Listening HTTP",
 			"host", host)
-		err = http.ListenAndServe(host, handler)
+		err = srv.ListenAndServe()
 	}
 	if err != nil {
 		a.errChan <- err

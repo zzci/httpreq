@@ -3,7 +3,7 @@ WORKDIR /build/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
-RUN npx vite build
+RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS backend
 ARG TARGETOS TARGETARCH

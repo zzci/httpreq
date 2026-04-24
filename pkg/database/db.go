@@ -502,22 +502,48 @@ func (d *acmednsdb) CreateUser(username, passwordHash string) (httpreq.User, err
 	defer d.Mutex.Unlock()
 	now := time.Now().Unix()
 	apiKey := httpreq.GenerateAPIKey()
-	insSQL := `INSERT INTO users (username, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4)`
-	if d.Config.Database.Engine == "sqlite" {
-		insSQL = getSQLiteStmt(insSQL)
-	}
-	result, err := d.DB.Exec(insSQL, username, passwordHash, apiKey, now)
-	if err != nil {
-		return httpreq.User{}, fmt.Errorf("failed to create user: %w", err)
-	}
-	id, _ := result.LastInsertId()
-	// Create default global key in api_keys table
 	scopeJSON, _ := json.Marshal([]string{"*"})
+
+	tx, err := d.DB.Begin()
+	if err != nil {
+		return httpreq.User{}, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		} else {
+			_ = tx.Commit()
+		}
+	}()
+
+	var id int64
+	if d.Config.Database.Engine == "sqlite" {
+		result, execErr := tx.Exec("INSERT INTO users (username, password_hash, api_key, created_at) VALUES (?, ?, ?, ?)",
+			username, passwordHash, apiKey, now)
+		if execErr != nil {
+			err = fmt.Errorf("failed to create user: %w", execErr)
+			return httpreq.User{}, err
+		}
+		id, _ = result.LastInsertId()
+	} else {
+		execErr := tx.QueryRow("INSERT INTO users (username, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
+			username, passwordHash, apiKey, now).Scan(&id)
+		if execErr != nil {
+			err = fmt.Errorf("failed to create user: %w", execErr)
+			return httpreq.User{}, err
+		}
+	}
+
 	insKeySQL := `INSERT INTO api_keys (user_id, name, key_value, scope, created_at) VALUES ($1, $2, $3, $4, $5)`
 	if d.Config.Database.Engine == "sqlite" {
 		insKeySQL = getSQLiteStmt(insKeySQL)
 	}
-	_, _ = d.DB.Exec(insKeySQL, id, "Default", apiKey, string(scopeJSON), now)
+	_, execErr := tx.Exec(insKeySQL, id, "Default", apiKey, string(scopeJSON), now)
+	if execErr != nil {
+		err = fmt.Errorf("failed to create default key: %w", execErr)
+		return httpreq.User{}, err
+	}
+
 	return httpreq.User{ID: id, Username: username, PasswordHash: passwordHash, APIKey: apiKey, CreatedAt: now}, nil
 }
 
@@ -555,6 +581,7 @@ func (d *acmednsdb) RegenerateAPIKey(userID int64) (string, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	newKey := httpreq.GenerateAPIKey()
+	// Update users table
 	updSQL := `UPDATE users SET api_key=$1 WHERE id=$2`
 	if d.Config.Database.Engine == "sqlite" {
 		updSQL = getSQLiteStmt(updSQL)
@@ -563,6 +590,12 @@ func (d *acmednsdb) RegenerateAPIKey(userID int64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to regenerate api key: %w", err)
 	}
+	// Update the Default key in api_keys table
+	updKeySQL := `UPDATE api_keys SET key_value=$1 WHERE user_id=$2 AND name='Default'`
+	if d.Config.Database.Engine == "sqlite" {
+		updKeySQL = getSQLiteStmt(updKeySQL)
+	}
+	_, _ = d.DB.Exec(updKeySQL, newKey, userID)
 	return newKey, nil
 }
 
@@ -687,12 +720,15 @@ func (d *acmednsdb) ListUsers() ([]httpreq.User, error) {
 func (d *acmednsdb) DeleteUser(userID int64) error {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	delSQL := `DELETE FROM user_domains WHERE user_id=$1`
-	if d.Config.Database.Engine == "sqlite" {
-		delSQL = getSQLiteStmt(delSQL)
+	// Delete in FK-safe order: api_keys -> user_domains -> users
+	for _, table := range []string{"api_keys", "user_domains"} {
+		delSQL := fmt.Sprintf("DELETE FROM %s WHERE user_id=$1", table)
+		if d.Config.Database.Engine == "sqlite" {
+			delSQL = getSQLiteStmt(delSQL)
+		}
+		_, _ = d.DB.Exec(delSQL, userID)
 	}
-	_, _ = d.DB.Exec(delSQL, userID)
-	delSQL = `DELETE FROM users WHERE id=$1`
+	delSQL := `DELETE FROM users WHERE id=$1`
 	if d.Config.Database.Engine == "sqlite" {
 		delSQL = getSQLiteStmt(delSQL)
 	}

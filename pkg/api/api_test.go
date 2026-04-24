@@ -55,6 +55,8 @@ func setupTestServer() (*httptest.Server, API, httpreq.DB) {
 	router.POST("/api/register", a.apiRegister)
 	router.POST("/api/login", a.apiLogin)
 	router.GET("/api/info", a.apiInfo)
+	router.GET("/api/profile", a.JWTOrGlobalKeyAuth(a.apiProfile))
+	router.GET("/api/keys", a.JWTOrGlobalKeyAuth(a.apiListKeys))
 	router.GET("/api/domains", a.JWTOrKeyAuth(a.apiGetDomains))
 	router.POST("/api/domains", a.JWTOrKeyAuth(a.apiAddDomain))
 	router.DELETE("/api/domains/:domain", a.JWTOrKeyAuth(a.apiRemoveDomain))
