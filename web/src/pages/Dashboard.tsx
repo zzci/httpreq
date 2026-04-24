@@ -224,22 +224,32 @@ export default function Dashboard() {
       )}
 
       {/* Config Tab */}
-      {tab === 'config' && defaultKey && (
-        <div className="card tab-card">
-          <div className="config-block">
-            Configure <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">lego httpreq</a> provider:
-            <div className="config-line"><code>HTTPREQ_ENDPOINT=https://{apiDomain}</code><CopyBtn text={`HTTPREQ_ENDPOINT=https://${apiDomain}`} /></div>
-            <div className="config-line"><code>HTTPREQ_USERNAME={username}</code><CopyBtn text={`HTTPREQ_USERNAME=${username}`} /></div>
-            <div className="config-line"><code>HTTPREQ_PASSWORD={defaultKey.key}</code><CopyBtn text={`HTTPREQ_PASSWORD=${defaultKey.key}`} /></div>
-            <div className="config-line"><code>LEGO_DISABLE_CNAME_SUPPORT=true</code><CopyBtn text="LEGO_DISABLE_CNAME_SUPPORT=true" /></div>
+      {tab === 'config' && defaultKey && (() => {
+        const legoEnv = `HTTPREQ_ENDPOINT=https://${apiDomain}\nHTTPREQ_USERNAME=${username}\nHTTPREQ_PASSWORD=${defaultKey.key}\nLEGO_DISABLE_CNAME_SUPPORT=true`;
+        const legoCmd = `lego --dns httpreq --dns.propagation-disable-ans \\\n  --domains example.com --domains "*.example.com" \\\n  --email admin@example.com --accept-tos run`;
+        const traefikYaml = `certificatesResolvers:\n  letsencrypt:\n    acme:\n      email: admin@example.com\n      storage: /data/ssl/acme.json\n      dnsChallenge:\n        provider: httpreq\n        propagation:\n          disableChecks: true`;
+        const dockerEnv = `LEGO_DISABLE_CNAME_SUPPORT: "true"\nHTTPREQ_ENDPOINT: "https://${apiDomain}"\nHTTPREQ_USERNAME: "${username}"\nHTTPREQ_PASSWORD: "${defaultKey.key}"`;
+        return (
+          <div className="config-sections">
+            <div className="config-section">
+              <div className="config-label">Environment Variables <CopyBtn text={legoEnv} /></div>
+              <pre className="config-pre">{legoEnv}</pre>
+            </div>
+            <div className="config-section">
+              <div className="config-label">lego Command <CopyBtn text={legoCmd} /></div>
+              <pre className="config-pre">{legoCmd}</pre>
+            </div>
+            <div className="config-section">
+              <div className="config-label">Traefik — traefik.yml <CopyBtn text={traefikYaml} /></div>
+              <pre className="config-pre">{traefikYaml}</pre>
+            </div>
+            <div className="config-section">
+              <div className="config-label">Traefik — docker-compose environment <CopyBtn text={dockerEnv} /></div>
+              <pre className="config-pre">{dockerEnv}</pre>
+            </div>
           </div>
-          <div className="card-divider" />
-          <div className="config-block">
-            <a href="https://doc.traefik.io/traefik/" target="_blank" rel="noreferrer">Traefik</a> integration:
-            <div className="config-line"><code>propagation.disableChecks: true</code><CopyBtn text="propagation:\n  disableChecks: true" /></div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="dash-footer">
         <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
