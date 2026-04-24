@@ -94,20 +94,18 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
+      <div className="topbar-brand">HTTPREQ</div>
       <div className="topbar">
-        <div className="topbar-left">
-          <div className="topbar-logo">HTTPREQ</div>
-          <div className="topbar-nav">
-            <button className={`nav-item ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
-              Domains <span className="nav-count">{domains.length}</span>
-            </button>
-            <button className={`nav-item ${tab === 'keys' ? 'active' : ''}`} onClick={() => setTab('keys')}>
-              API Keys <span className="nav-count">{keys.length}</span>
-            </button>
-            <button className={`nav-item ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>
-              Config
-            </button>
-          </div>
+        <div className="topbar-nav">
+          <button className={`nav-item ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
+            Domains <span className="nav-count">{domains.length}</span>
+          </button>
+          <button className={`nav-item ${tab === 'keys' ? 'active' : ''}`} onClick={() => setTab('keys')}>
+            API Keys <span className="nav-count">{keys.length}</span>
+          </button>
+          <button className={`nav-item ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>
+            Config
+          </button>
         </div>
         <div className="topbar-actions">
           {tab === 'domains' && (
