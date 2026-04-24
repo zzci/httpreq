@@ -15,10 +15,8 @@ test:
 # Start dev server (backend + frontend via nsl)
 dev:
     #!/usr/bin/env bash
-    # Start backend
-    nsl run -n httpdns -p 3000 ./httpdns -c config.cfg &
+    nsl run -n httpdns ./httpdns -c config.cfg &
     BACKEND_PID=$!
-    # Start frontend dev server
     cd web && nsl run -n httpdns-dev npx vite --port NSL_PORT &
     FRONTEND_PID=$!
     trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
@@ -26,7 +24,7 @@ dev:
 
 # Start backend only via nsl
 serve:
-    nsl run -n httpdns -p 3000 ./httpdns -c config.cfg
+    nsl run -n httpdns ./httpdns -c config.cfg
 
 # Clean build artifacts and data
 clean:

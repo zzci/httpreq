@@ -25,6 +25,9 @@ func main() {
 		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
+	if port := os.Getenv("PORT"); port != "" {
+		config.API.Port = port
+	}
 	logger, err = httpdns.SetupLogging(config)
 	if err != nil {
 		fmt.Printf("Could not set up logging: %s\n", err)
