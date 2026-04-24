@@ -41,7 +41,7 @@ export default function Dashboard() {
   const [appVersion, setAppVersion] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
-  const [newKeyScope, setNewKeyScope] = useState('');
+  const [newKeyScopes, setNewKeyScopes] = useState<string[]>(['']);
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [showAddKey, setShowAddKey] = useState(false);
   const [error, setError] = useState('');
@@ -85,10 +85,11 @@ export default function Dashboard() {
   const handleCreateKey = async (e: FormEvent) => {
     e.preventDefault(); setError('');
     if (!newKeyName.trim()) return;
-    const scope = newKeyScope.trim()
-      ? newKeyScope.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-      : ['*'];
-    try { await api.createKey(newKeyName.trim(), scope); setNewKeyName(''); setNewKeyScope(''); setShowAddKey(false); await loadData(); }
+    const scope = newKeyScopes.map(s => s.trim().toLowerCase()).filter(Boolean);
+    try {
+      await api.createKey(newKeyName.trim(), scope.length > 0 ? scope : ['*']);
+      setNewKeyName(''); setNewKeyScopes(['']); setShowAddKey(false); await loadData();
+    }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to create key'); }
   };
 
@@ -142,12 +143,23 @@ export default function Dashboard() {
 
       {/* Add Key Modal */}
       {showAddKey && (
-        <Modal title="Create API Key" onClose={() => setShowAddKey(false)}>
+        <Modal title="Create API Key" onClose={() => { setShowAddKey(false); setNewKeyScopes(['']); }}>
           <form className="modal-form" onSubmit={handleCreateKey}>
             <input type="text" placeholder="Key name" value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)} autoFocus />
-            <input type="text" placeholder="Scope: *.example.com, domain.com (empty = global)"
-              value={newKeyScope} onChange={(e) => setNewKeyScope(e.target.value)} />
+            <div className="scope-label">Scope <span className="scope-hint">Leave empty for global access</span></div>
+            <div className="scope-list">
+              {newKeyScopes.map((s, i) => (
+                <div className="scope-row" key={i}>
+                  <input type="text" placeholder="*.example.com" value={s}
+                    onChange={(e) => { const arr = [...newKeyScopes]; arr[i] = e.target.value; setNewKeyScopes(arr); }} />
+                  {newKeyScopes.length > 1 && (
+                    <button type="button" className="scope-remove" onClick={() => setNewKeyScopes(newKeyScopes.filter((_, j) => j !== i))}>×</button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="scope-add" onClick={() => setNewKeyScopes([...newKeyScopes, ''])}>+ Add domain</button>
+            </div>
             <button type="submit" className="btn-primary">Create Key</button>
           </form>
         </Modal>

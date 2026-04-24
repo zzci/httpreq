@@ -321,6 +321,61 @@ body {
   transition: border-color var(--transition);
 }
 
+.scope-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+
+.scope-hint {
+  font-weight: 400;
+  color: var(--slate-400);
+  font-size: 0.78rem;
+  margin-left: 0.4rem;
+}
+
+.scope-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.scope-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.scope-row input { flex: 1; }
+
+.scope-remove {
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: 1px solid var(--red-200);
+  color: var(--red-500);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.scope-remove:hover { background: var(--red-500); color: #fff; }
+
+.scope-add {
+  background: none;
+  border: 1px dashed var(--slate-300);
+  color: var(--slate-500);
+  padding: 0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all var(--transition);
+}
+
+.scope-add:hover { border-color: var(--blue-600); color: var(--blue-600); }
+
 .modal-form input:focus {
   border-color: var(--blue-600);
   background: #fff;
