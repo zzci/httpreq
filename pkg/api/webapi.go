@@ -214,7 +214,7 @@ func (a *API) apiInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		apiDomain = a.Config.General.Domain
 	}
 	jsonResp(w, http.StatusOK, map[string]interface{}{
-		"provider":    "zzci-httpreq",
+		"provider":    "ns-httpreq",
 		"version":     a.Version,
 		"base_domain": a.Config.General.Domain,
 		"api_domain":  apiDomain,

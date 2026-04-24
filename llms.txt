@@ -1,7 +1,7 @@
 # httpreq — ACME httpreq Server
 
 > Self-hosted DNS server for ACME DNS-01 challenges via the lego httpreq protocol.
-> Project ID: zzci-httpreq
+> Project ID: ns-httpreq
 
 Source: https://github.com/zzci/httpreq
 Online service: https://dnsall.com
@@ -39,7 +39,7 @@ Response: HTTP 200
 - HTTPREQ_PASSWORD — API key (NOT the account password)
 - LEGO_DISABLE_CNAME_SUPPORT — set "true" when using CNAME delegation
 
-## zzci-httpreq Extensions
+## ns-httpreq Extensions
 
 This server extends the standard httpreq protocol with multi-user management, API key system, domain registration, and CNAME delegation.
 
@@ -186,7 +186,7 @@ GET /admin/records → [{domain, value, last_update}]
 ```
 GET /api/info
 → 200 {
-  "provider": "zzci-httpreq",
+  "provider": "ns-httpreq",
   "base_domain": "s.dnsall.com",
   "api_domain": "api.dnsall.com",
   "capabilities": ["multi_key","scoped_key","domain_management","wildcard_scope","account_deletion"]
@@ -202,7 +202,7 @@ GET /llms.txt → this document
 
 ## Client Implementation Guide — Provider Detection
 
-zzci-httpreq is a superset of the standard httpreq protocol. Clients SHOULD detect the provider
+ns-httpreq is a superset of the standard httpreq protocol. Clients SHOULD detect the provider
 before using extended features, so they remain compatible with plain httpreq servers.
 
 ### Recommended flow:
@@ -211,7 +211,7 @@ before using extended features, so they remain compatible with plain httpreq ser
 1. User registers at the web dashboard and gets username + API key
 2. User provides credentials to the client/automation system
 3. Client calls GET /api/info to detect provider
-4. If "provider": "zzci-httpreq" → use extended API (add domains, manage keys via API key)
+4. If "provider": "ns-httpreq" → use extended API (add domains, manage keys via API key)
 5. If 404 or no "provider" → standard httpreq, only /present and /cleanup
 6. Check "capabilities" array for specific features:
    - "domain_management" → POST/DELETE /api/domains available
@@ -230,7 +230,7 @@ api_key = config["HTTPREQ_PASSWORD"]   # from user
 
 info = GET(f"{endpoint}/api/info")
 
-if info.get("provider") == "zzci-httpreq":
+if info.get("provider") == "ns-httpreq":
     # Extended mode: add domain via API key if not already added
     if "domain_management" in info.get("capabilities", []):
         POST(f"{endpoint}/api/domains", {"domain": target_domain},

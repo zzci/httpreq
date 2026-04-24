@@ -1,7 +1,7 @@
 # httpreq API — ACME httpreq Server
 
 > Automate SSL certificate DNS verification. Manage domains and ACME DNS-01 challenges via API keys.
-> Project ID: zzci-httpreq
+> Project ID: ns-httpreq
 
 Endpoint: https://api.dnsall.com
 Dashboard: https://dnsall.com
@@ -96,13 +96,13 @@ Authorization: Bearer {api_key}
 → 204 (deletes account, all keys, domains, and TXT records)
 
 GET https://api.dnsall.com/api/info
-→ {"provider":"zzci-httpreq","base_domain":"s.dnsall.com","api_domain":"api.dnsall.com",
+→ {"provider":"ns-httpreq","base_domain":"s.dnsall.com","api_domain":"api.dnsall.com",
    "capabilities":["multi_key","scoped_key","domain_management","wildcard_scope","account_deletion"]}
 
 ## Provider Detection
 
 Clients should check `GET /api/info` before using extended features:
-- If `provider` is `"zzci-httpreq"` → extended API available (keys, domains, accounts)
+- If `provider` is `"ns-httpreq"` → extended API available (keys, domains, accounts)
 - If 404 or no `provider` field → standard httpreq, only /present and /cleanup
 - Check `capabilities` array for specific feature support
 ```
