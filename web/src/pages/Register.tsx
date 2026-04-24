@@ -36,7 +36,6 @@ export default function Register() {
       <div className="auth-card">
         <div className="auth-logo">HTTPREQ</div>
         <div className="auth-tagline">ACME httpreq Server</div>
-        <div className="auth-subtitle">Create an account to get started</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <input type="text" placeholder="Choose a username" value={username}

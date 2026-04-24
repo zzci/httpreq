@@ -32,7 +32,6 @@ export default function Login() {
       <div className="auth-card">
         <div className="auth-logo">HTTPREQ</div>
         <div className="auth-tagline">ACME httpreq Server</div>
-        <div className="auth-subtitle">Sign in to manage your domains</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <input type="text" placeholder="Username" value={username}
