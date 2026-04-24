@@ -13,17 +13,11 @@ Protocol: https://go-acme.github.io/lego/dns/httpreq/
 - **API Key (Basic Auth)**: For httpreq /present and /cleanup. Use as `Authorization: Basic base64(username:api_key)`.
 - **Account password**: Only for web dashboard login and key recovery. Never used in API calls.
 
-## Quick Start (full automation, no web UI needed)
+## Quick Start
 
-### 1. Register — save the api_key
-```
-POST https://api.dnsall.com/api/register
-Content-Type: application/json
-{"username": "myuser", "password": "mypassword"}
-→ {"token": "jwt...", "username": "myuser", "api_key": "abc123..."}
-```
+Prerequisites: User registers at https://dnsall.com and provides username + API key.
 
-### 2. Add domain — using API key
+### 1. Add domain — using API key provided by user
 ```
 POST https://api.dnsall.com/api/domains
 Authorization: Bearer {api_key}

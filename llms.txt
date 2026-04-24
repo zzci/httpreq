@@ -52,30 +52,26 @@ This server extends the standard httpreq protocol with multi-user management, AP
 5. **Wildcard Scope**: `*.example.com` matches `example.com` and all subdomains (`sub.example.com`, `a.b.example.com`).
 6. **CNAME Delegation**: Each domain gets a deterministic subdomain (`sha256(username:domain)[:8]`). Users set a CNAME record pointing to this subdomain.
 
-### Full Automation Flow (no web UI needed)
+### Usage Flow
+
+Prerequisites: User registers at https://dnsall.com and provides their username and API key to the client.
 
 ```bash
-# Step 1: Register (one-time) — save the api_key
-curl -s POST https://api.dnsall.com/api/register \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"myuser","password":"mypassword"}'
-# → {"token":"jwt...","username":"myuser","api_key":"abc123..."}
-
-# Step 2: Add domain using API key as Bearer token
+# Step 1: Add domain using API key (provided by user)
 curl -s POST https://api.dnsall.com/api/domains \
-  -H 'Authorization: Bearer abc123...' \
+  -H 'Authorization: Bearer {api_key}' \
   -H 'Content-Type: application/json' \
   -d '{"domain":"example.com"}'
 # → {"domain":"example.com","subdomain":"a1b2c3d4","cname_target":"a1b2c3d4.s.dnsall.com"}
 
-# Step 3: Set CNAME in your DNS
+# Step 2: Set CNAME in your DNS
 # _acme-challenge.example.com CNAME a1b2c3d4.s.dnsall.com
 
-# Step 4: Issue certificate
+# Step 3: Issue certificate
 LEGO_DISABLE_CNAME_SUPPORT=true \
 HTTPREQ_ENDPOINT=https://api.dnsall.com \
-HTTPREQ_USERNAME=myuser \
-HTTPREQ_PASSWORD=abc123... \
+HTTPREQ_USERNAME={username} \
+HTTPREQ_PASSWORD={api_key} \
 lego --dns httpreq --dns.propagation-disable-ans \
   --domains example.com --domains "*.example.com" \
   --email admin@example.com --accept-tos run
@@ -212,33 +208,34 @@ before using extended features, so they remain compatible with plain httpreq ser
 ### Recommended flow:
 
 ```
-1. GET /api/info
-2. If response contains "provider": "zzci-httpreq":
-   → Use extended API (register, manage keys, add domains via API key)
-3. If /api/info returns 404 or no "provider" field:
-   → Standard httpreq server, only /present and /cleanup available
-4. Check "capabilities" array for specific features:
+1. User registers at the web dashboard and gets username + API key
+2. User provides credentials to the client/automation system
+3. Client calls GET /api/info to detect provider
+4. If "provider": "zzci-httpreq" → use extended API (add domains, manage keys via API key)
+5. If 404 or no "provider" → standard httpreq, only /present and /cleanup
+6. Check "capabilities" array for specific features:
    - "domain_management" → POST/DELETE /api/domains available
    - "multi_key" → POST /api/keys available
    - "scoped_key" → scope field in key creation supported
    - "wildcard_scope" → *.example.com patterns supported
-   - "account_deletion" → DELETE /api/profile available
+   - "account_deletion" → DELETE /api/profile available (for test cleanup only)
 ```
 
 ### Example client pseudocode:
 
 ```python
+# Credentials are provided by the user, NOT auto-registered
+username = config["HTTPREQ_USERNAME"]  # from user
+api_key = config["HTTPREQ_PASSWORD"]   # from user
+
 info = GET(f"{endpoint}/api/info")
 
 if info.get("provider") == "zzci-httpreq":
-    # Extended mode: register, add domain, get key — all via API
-    if not has_credentials():
-        result = POST(f"{endpoint}/api/register", {"username": gen_user(), "password": gen_pass()})
-        save_api_key(result["api_key"])
-
+    # Extended mode: add domain via API key if not already added
     if "domain_management" in info.get("capabilities", []):
         POST(f"{endpoint}/api/domains", {"domain": target_domain},
              headers={"Authorization": f"Bearer {api_key}"})
+        # Response includes cname_target — user sets this CNAME in their DNS
 
     # Then use standard httpreq for certificate issuance
     present(fqdn, value, username, api_key)
@@ -288,12 +285,14 @@ HTTPREQ_PASSWORD: "{api_key}"
 
 ## Important Notes for AI Clients
 
-1. **Use API keys, not passwords**: Account password is only for web login and key recovery. All API calls use API keys as Bearer tokens or Basic Auth.
-2. **Full automation**: Register → get api_key → add domains → issue certs. No web UI interaction required.
-3. **Global vs scoped keys**: Create scoped keys (`*.example.com`) for CI/CD systems that only need access to specific domains. Use global key for full control.
-4. **Scoped key auto-expand**: When a scoped key adds a new domain matching its scope pattern, the domain is automatically added to the key's scope.
-5. **LEGO_DISABLE_CNAME_SUPPORT=true**: Required when using CNAME delegation, prevents lego from rewriting the FQDN.
-6. **--dns.propagation-disable-ans**: Required because TXT records are on the httpreq DNS server, not the domain's authoritative NS.
-7. **Wildcard certs**: `*.example.com` and `example.com` both use `_acme-challenge.example.com` — same CNAME, lego handles both automatically.
-8. **Deterministic subdomains**: `hash(username:domain)` produces the same subdomain each time — CNAME records survive database rebuilds.
-9. **Account deletion**: `DELETE /api/profile` cleans up everything (keys, domains, TXT records). Useful for test cleanup.
+1. **Do NOT auto-register accounts**: Users register at the web dashboard themselves. Clients receive username and API key from the user. Auto-registration is only acceptable in test/development environments.
+2. **Use API keys, not passwords**: Account password is only for web login and key recovery. All API calls use API keys as Bearer tokens or Basic Auth.
+3. **Credentials come from the user**: Ask the user for HTTPREQ_USERNAME and HTTPREQ_PASSWORD (api_key), never generate them.
+4. **Domain management via API key**: With a global key, clients can add/delete domains via `POST /api/domains` — no web UI needed for this step.
+5. **Global vs scoped keys**: Users create scoped keys (`*.example.com`) for CI/CD systems that only need access to specific domains.
+6. **Scoped key auto-expand**: When a scoped key adds a new domain matching its scope pattern, the domain is automatically added to the key's scope.
+7. **LEGO_DISABLE_CNAME_SUPPORT=true**: Required when using CNAME delegation, prevents lego from rewriting the FQDN.
+8. **--dns.propagation-disable-ans**: Required because TXT records are on the httpreq DNS server, not the domain's authoritative NS.
+9. **Wildcard certs**: `*.example.com` and `example.com` both use `_acme-challenge.example.com` — same CNAME, lego handles both automatically.
+10. **Deterministic subdomains**: `hash(username:domain)` produces the same subdomain each time — CNAME records survive database rebuilds.
+11. **Account deletion**: `DELETE /api/profile` is for test cleanup only, not for production use.
