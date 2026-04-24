@@ -22,11 +22,12 @@ type API struct {
 	Config  *httpreq.Config
 	DB      httpreq.DB
 	Logger  *zap.SugaredLogger
+	Version string
 	errChan chan error
 }
 
-func Init(config *httpreq.Config, db httpreq.DB, logger *zap.SugaredLogger, errChan chan error) API {
-	a := API{Config: config, DB: db, Logger: logger, errChan: errChan}
+func Init(config *httpreq.Config, db httpreq.DB, logger *zap.SugaredLogger, errChan chan error, version string) API {
+	a := API{Config: config, DB: db, Logger: logger, Version: version, errChan: errChan}
 	return a
 }
 

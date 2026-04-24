@@ -53,6 +53,7 @@ export interface APIKeyItem {
 export interface InfoResponse {
   base_domain: string;
   api_domain: string;
+  version: string;
 }
 
 export const api = {

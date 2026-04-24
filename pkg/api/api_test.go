@@ -42,7 +42,7 @@ func setupTestServer() (*httptest.Server, API, httpreq.DB) {
 
 	db, _ := database.Init(&config, logger)
 	errChan := make(chan error, 1)
-	a := Init(&config, db, logger, errChan)
+	a := Init(&config, db, logger, errChan, "test")
 	c := cors.New(cors.Options{
 		AllowedOrigins:  config.API.CorsOrigins,
 		AllowedMethods:  []string{"GET", "POST", "DELETE"},

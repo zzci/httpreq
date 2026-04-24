@@ -11,7 +11,8 @@ RUN apk add --no-cache git
 WORKDIR /build
 COPY . .
 COPY --from=frontend /build/web/dist ./web/dist
-RUN go mod download && GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags="-s -w" -o httpreq .
+ARG VERSION=dev
+RUN go mod download && GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o httpreq .
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata

@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var version = "dev"
+
 func main() {
 	setUmask()
 	configPtr := flag.String("c", "./data/config.cfg", "config file location")
@@ -42,7 +44,7 @@ func main() {
 	db, err := database.Init(&config, sugar)
 	// Error channel for servers
 	errChan := make(chan error, 1)
-	api := api.Init(&config, db, sugar, errChan)
+	api := api.Init(&config, db, sugar, errChan, version)
 	dnsservers := nameserver.InitAndStart(&config, db, sugar, errChan)
 	go api.Start(dnsservers)
 	if err != nil {

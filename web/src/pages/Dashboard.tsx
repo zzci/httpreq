@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [keys, setKeys] = useState<APIKeyItem[]>([]);
   const [apiDomain, setApiDomain] = useState('');
   const [username, setUsername] = useState('');
+  const [appVersion, setAppVersion] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyScope, setNewKeyScope] = useState('');
@@ -55,6 +56,7 @@ export default function Dashboard() {
       setDomains(doms || []);
       setRecords(recs || []);
       setApiDomain(info.api_domain);
+      setAppVersion(info.version || 'dev');
       setUsername(profile.username);
       setKeys(ks || []);
     } catch (err: unknown) {
@@ -243,6 +245,8 @@ export default function Dashboard() {
         <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
         <span>&middot;</span>
         <a href="/llms.txt" target="_blank">llms.txt</a>
+        <span>&middot;</span>
+        <span>{appVersion}</span>
       </div>
     </div>
   );

@@ -5,9 +5,12 @@ web-build:
     cd web && npx vite build
 
 # Build Go binary (with embedded frontend)
+version := `git describe --tags --always --dirty 2>/dev/null || echo dev`
+
+# Build Go binary (with embedded frontend)
 build: web-build
     mkdir -p dist
-    CGO_ENABLED=0 go build -o dist/httpreq .
+    CGO_ENABLED=0 go build -ldflags="-s -w -X main.version={{version}}" -o dist/httpreq .
 
 # Run all tests
 test:
