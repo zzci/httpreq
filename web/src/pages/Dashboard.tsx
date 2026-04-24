@@ -238,6 +238,12 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <div className="dash-footer">
+        <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
+        <span>&middot;</span>
+        <a href="/llms.txt" target="_blank">llms.txt</a>
+      </div>
     </div>
   );
 }

@@ -175,7 +175,6 @@ body {
   align-items: center;
   padding: 0 0 0.5rem;
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid var(--slate-200);
 }
 
 .topbar-nav {
@@ -187,8 +186,6 @@ body {
   padding: 0.45rem 0.85rem;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 500;
@@ -196,8 +193,8 @@ body {
   transition: all var(--transition);
 }
 
-.nav-item:hover { color: var(--slate-700); }
-.nav-item.active { color: var(--blue-600); border-bottom-color: var(--blue-600); }
+.nav-item:hover { color: var(--slate-700); background: var(--slate-50); border-radius: 5px; }
+.nav-item.active { color: var(--blue-600); background: var(--blue-50); border-radius: 5px; }
 
 .nav-count {
   font-size: 0.68rem;
@@ -211,6 +208,19 @@ body {
 .nav-item.active .nav-count { background: var(--blue-50); color: var(--blue-600); }
 
 .tab-card { }
+
+.dash-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--slate-100);
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--slate-400);
+}
+
+.dash-footer a { color: var(--slate-400); text-decoration: none; }
+.dash-footer a:hover { color: var(--slate-600); }
+.dash-footer span { margin: 0 0.25rem; }
 
 .card-divider { border-top: 1px solid var(--slate-100); }
 
