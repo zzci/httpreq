@@ -217,39 +217,89 @@ body {
 
 .topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
 
-.topbar-add {
-  display: flex;
-  gap: 0.35rem;
-}
-
-.topbar-add input {
-  padding: 0.3rem 0.6rem;
-  border: 1px solid var(--slate-200);
-  border-radius: 5px;
-  font-size: 0.82rem;
-  outline: none;
-  width: 160px;
-  background: var(--slate-50);
-  transition: border-color var(--transition);
-}
-
-.topbar-add input:focus {
-  border-color: var(--blue-600);
-  background: #fff;
-}
-
-.topbar-add button {
-  padding: 0.3rem 0.7rem;
+.btn-action {
+  padding: 0.3rem 0.75rem;
   background: var(--blue-600);
   color: #fff;
   border: none;
   border-radius: 5px;
   font-size: 0.82rem;
+  font-weight: 500;
   cursor: pointer;
   transition: background var(--transition);
 }
 
-.topbar-add button:hover { background: var(--blue-700); }
+.btn-action:hover { background: var(--blue-700); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.modal-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--slate-800);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: var(--slate-400);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover { color: var(--slate-700); }
+
+.modal-body { padding: 1.25rem; }
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-form input {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--slate-200);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  background: var(--slate-50);
+  transition: border-color var(--transition);
+}
+
+.modal-form input:focus {
+  border-color: var(--blue-600);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
 
 .topbar-user {
   font-size: 0.85rem;
