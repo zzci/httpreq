@@ -210,6 +210,40 @@ body {
 
 .topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
 
+.topbar-add {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.topbar-add input {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--slate-200);
+  border-radius: 5px;
+  font-size: 0.82rem;
+  outline: none;
+  width: 160px;
+  background: var(--slate-50);
+  transition: border-color var(--transition);
+}
+
+.topbar-add input:focus {
+  border-color: var(--blue-600);
+  background: #fff;
+}
+
+.topbar-add button {
+  padding: 0.3rem 0.7rem;
+  background: var(--blue-600);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.topbar-add button:hover { background: var(--blue-700); }
+
 .topbar-user {
   font-size: 0.85rem;
   color: var(--slate-500);

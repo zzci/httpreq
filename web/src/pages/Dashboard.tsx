@@ -110,6 +110,13 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="topbar-actions">
+          {tab === 'domains' && (
+            <form className="topbar-add" onSubmit={handleAddDomain}>
+              <input type="text" placeholder="Add domain..." value={newDomain}
+                onChange={(e) => setNewDomain(e.target.value)} />
+              <button type="submit">Add</button>
+            </form>
+          )}
           <span className="topbar-user">{username}</span>
           <button className="btn-ghost" onClick={() => { clearToken(); navigate('/login'); }}>Logout</button>
         </div>
@@ -120,11 +127,6 @@ export default function Dashboard() {
       {/* Domains Tab */}
       {tab === 'domains' && (
         <div className="card tab-card">
-          <form className="add-form" onSubmit={handleAddDomain}>
-            <input type="text" placeholder="example.com" value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)} />
-            <button type="submit">Add</button>
-          </form>
           <table>
             <thead>
               <tr><th>Domain</th><th>CNAME Name</th><th>CNAME Value</th><th></th></tr>
