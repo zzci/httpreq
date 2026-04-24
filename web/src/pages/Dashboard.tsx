@@ -129,6 +129,27 @@ export default function Dashboard() {
 
       {error && <div className="error">{error}</div>}
 
+      {/* Global Key */}
+      {defaultKey && (
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Global API Key</span>
+          </div>
+          <div className="card-body">
+            <div className="cred-row">
+              <span className="cred-label">Username</span>
+              <span className="cred-value">{username}</span>
+              <CopyBtn text={username} />
+            </div>
+            <div className="cred-row">
+              <span className="cred-label">API Key</span>
+              <span className="cred-value">{defaultKey.key}</span>
+              <CopyBtn text={defaultKey.key} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* API Keys */}
       <div className="card">
         <div className="card-header">
@@ -137,7 +158,7 @@ export default function Dashboard() {
         <form className="add-form" onSubmit={handleCreateKey}>
           <input type="text" placeholder="Key name" value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)} style={{flex: '0 0 150px'}} />
-          <input type="text" placeholder="Scope: domain1,domain2 (empty = global)"
+          <input type="text" placeholder="Scope: *.example.com, domain.com (empty = global)"
             value={newKeyScope} onChange={(e) => setNewKeyScope(e.target.value)} />
           <button type="submit">Create</button>
         </form>

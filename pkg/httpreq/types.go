@@ -95,15 +95,24 @@ func (k *APIKey) IsGlobal() bool {
 	return false
 }
 
-// HasDomainAccess checks if a key can operate on a domain
+// HasDomainAccess checks if a key can operate on a domain.
+// Supports exact match ("example.com") and wildcard ("*.example.com").
+// Wildcard matches the root domain and all subdomains.
 func (k *APIKey) HasDomainAccess(domain string) bool {
 	if k.IsGlobal() {
 		return true
 	}
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	for _, s := range k.Scope {
-		if strings.ToLower(s) == domain {
+		s = strings.ToLower(strings.TrimSpace(s))
+		if s == domain {
 			return true
+		}
+		if strings.HasPrefix(s, "*.") {
+			root := s[2:] // "*.example.com" → "example.com"
+			if domain == root || strings.HasSuffix(domain, "."+root) {
+				return true
+			}
 		}
 	}
 	return false
