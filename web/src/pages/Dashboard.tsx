@@ -164,7 +164,7 @@ export default function Dashboard() {
             <input type="text" placeholder="Key name" value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)} autoFocus />
             <div className="scope-label">
-              Scope
+              Domains
               <span className="scope-help" title="Define which domains this key can access.&#10;&#10;• Leave empty = global (all domains)&#10;• *.example.com = example.com and all subdomains&#10;• example.com = exact domain only&#10;&#10;Note: *.example.com already covers example.com, no need to add both.">?</span>
               <span className="scope-hint">Leave empty for global access</span>
             </div>
@@ -235,7 +235,7 @@ export default function Dashboard() {
       {tab === 'keys' && (
         <div className="card tab-card">
           <table>
-            <thead><tr><th>Name</th><th>Key</th><th>Scope</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Key</th><th>Domains</th><th></th></tr></thead>
             <tbody>
               {keys.length === 0 ? (
                 <tr><td colSpan={4} className="empty">No API keys</td></tr>
