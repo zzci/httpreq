@@ -55,10 +55,10 @@ func setupTestServer() (*httptest.Server, API, httpreq.DB) {
 	router.POST("/api/register", a.apiRegister)
 	router.POST("/api/login", a.apiLogin)
 	router.GET("/api/info", a.apiInfo)
-	router.GET("/api/domains", a.JWTAuth(a.apiGetDomains))
-	router.POST("/api/domains", a.JWTAuth(a.apiAddDomain))
-	router.DELETE("/api/domains/:domain", a.JWTAuth(a.apiRemoveDomain))
-	router.GET("/api/records", a.JWTAuth(a.apiGetRecords))
+	router.GET("/api/domains", a.JWTOrKeyAuth(a.apiGetDomains))
+	router.POST("/api/domains", a.JWTOrKeyAuth(a.apiAddDomain))
+	router.DELETE("/api/domains/:domain", a.JWTOrKeyAuth(a.apiRemoveDomain))
+	router.GET("/api/records", a.JWTOrKeyAuth(a.apiGetRecords))
 
 	server := httptest.NewServer(c.Handler(router))
 	return server, a, db

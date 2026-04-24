@@ -34,6 +34,17 @@ func (a *API) webCleanupPost(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
+	// Check API key scope
+	domain := httpreq.ExtractDomainFromFQDN(payload.FQDN)
+	if key, ok := getAPIKeyFromContext(r); ok && !key.HasDomainAccess(domain) {
+		a.Logger.Errorw("Cleanup: key scope denied",
+			"user", user.Username, "fqdn", payload.FQDN)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write(jsonError("domain_not_in_scope"))
+		return
+	}
+
 	subdomain, err := a.resolveSubdomain(user.ID, payload.FQDN)
 	if err != nil {
 		a.Logger.Errorw("Cleanup: domain not authorized",

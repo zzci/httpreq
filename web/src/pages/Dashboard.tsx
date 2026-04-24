@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import type { Domain, TXTRecord } from '../api';
+import type { Domain, TXTRecord, APIKeyItem } from '../api';
 import { clearToken } from '../auth';
 
 function CopyBtn({ text }: { text: string }) {
@@ -22,27 +22,30 @@ function CopyBtn({ text }: { text: string }) {
 export default function Dashboard() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [records, setRecords] = useState<TXTRecord[]>([]);
+  const [keys, setKeys] = useState<APIKeyItem[]>([]);
   const [apiDomain, setApiDomain] = useState('');
   const [username, setUsername] = useState('');
-  const [apiKey, setApiKey] = useState('');
   const [newDomain, setNewDomain] = useState('');
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyScope, setNewKeyScope] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const loadData = useCallback(async () => {
     try {
-      const [doms, recs, info, profile] = await Promise.all([
+      const [doms, recs, info, profile, ks] = await Promise.all([
         api.getDomains(),
         api.getRecords(),
         api.getInfo(),
         api.getProfile(),
+        api.getKeys(),
       ]);
       setDomains(doms || []);
       setRecords(recs || []);
       setApiDomain(info.api_domain);
       setUsername(profile.username);
-      setApiKey(profile.api_key);
+      setKeys(ks || []);
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'invalid_token') {
         clearToken();
@@ -81,17 +84,36 @@ export default function Dashboard() {
     }
   };
 
-  const handleRegenerateKey = async () => {
-    if (!confirm('Regenerate API Key? Existing integrations will stop working.')) return;
+  const handleCreateKey = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!newKeyName.trim()) return;
+    const scope = newKeyScope.trim()
+      ? newKeyScope.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      : ['*'];
     try {
-      const res = await api.regenerateKey();
-      setApiKey(res.api_key);
+      await api.createKey(newKeyName.trim(), scope);
+      setNewKeyName('');
+      setNewKeyScope('');
+      await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to regenerate key');
+      setError(err instanceof Error ? err.message : 'Failed to create key');
+    }
+  };
+
+  const handleDeleteKey = async (id: number, name: string) => {
+    if (!confirm(`Delete key "${name}"?`)) return;
+    try {
+      await api.deleteKey(id);
+      await loadData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete key');
     }
   };
 
   if (loading) return <div className="loading">Loading...</div>;
+
+  const defaultKey = keys.find(k => k.name === 'Default' && k.scope.includes('*'));
 
   return (
     <div className="dashboard">
@@ -107,24 +129,37 @@ export default function Dashboard() {
 
       {error && <div className="error">{error}</div>}
 
-      {/* API Credentials */}
+      {/* API Keys */}
       <div className="card">
         <div className="card-header">
-          <span className="card-title">API Credentials</span>
+          <span className="card-title">API Keys</span>
         </div>
-        <div className="card-body">
-          <div className="cred-row">
-            <span className="cred-label">Username</span>
-            <span className="cred-value">{username}</span>
-            <CopyBtn text={username} />
-          </div>
-          <div className="cred-row">
-            <span className="cred-label">API Key</span>
-            <span className="cred-value">{apiKey}</span>
-            <CopyBtn text={apiKey} />
-            <button className="btn-sm btn-regen" onClick={handleRegenerateKey}>Regenerate</button>
-          </div>
-        </div>
+        <form className="add-form" onSubmit={handleCreateKey}>
+          <input type="text" placeholder="Key name" value={newKeyName}
+            onChange={(e) => setNewKeyName(e.target.value)} style={{flex: '0 0 150px'}} />
+          <input type="text" placeholder="Scope: domain1,domain2 (empty = global)"
+            value={newKeyScope} onChange={(e) => setNewKeyScope(e.target.value)} />
+          <button type="submit">Create</button>
+        </form>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Key</th><th>Scope</th><th></th></tr>
+          </thead>
+          <tbody>
+            {keys.length === 0 ? (
+              <tr><td colSpan={4} className="empty">No API keys</td></tr>
+            ) : (
+              keys.map((k) => (
+                <tr key={k.id}>
+                  <td>{k.name}</td>
+                  <td><code>{k.key}</code> <CopyBtn text={k.key} /></td>
+                  <td>{k.scope.includes('*') ? <em>Global</em> : <code>{k.scope.join(', ')}</code>}</td>
+                  <td><button className="btn-sm btn-delete" onClick={() => handleDeleteKey(k.id, k.name)}>Delete</button></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Domains */}
@@ -139,12 +174,7 @@ export default function Dashboard() {
         </form>
         <table>
           <thead>
-            <tr>
-              <th>Domain</th>
-              <th>CNAME Name</th>
-              <th>CNAME Value</th>
-              <th></th>
-            </tr>
+            <tr><th>Domain</th><th>CNAME Name</th><th>CNAME Value</th><th></th></tr>
           </thead>
           <tbody>
             {domains.length === 0 ? (
@@ -192,30 +222,32 @@ export default function Dashboard() {
       </div>
 
       {/* httpreq Config */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">httpreq Configuration</span>
+      {defaultKey && (
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">httpreq Configuration</span>
+          </div>
+          <div className="config-block">
+            Configure <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">lego httpreq</a> with these environment variables:
+            <div className="config-line">
+              <code>HTTPREQ_ENDPOINT=https://{apiDomain}</code>
+              <CopyBtn text={`HTTPREQ_ENDPOINT=https://${apiDomain}`} />
+            </div>
+            <div className="config-line">
+              <code>HTTPREQ_USERNAME={username}</code>
+              <CopyBtn text={`HTTPREQ_USERNAME=${username}`} />
+            </div>
+            <div className="config-line">
+              <code>HTTPREQ_PASSWORD={defaultKey.key}</code>
+              <CopyBtn text={`HTTPREQ_PASSWORD=${defaultKey.key}`} />
+            </div>
+            <div className="config-line">
+              <code>LEGO_DISABLE_CNAME_SUPPORT=true</code>
+              <CopyBtn text="LEGO_DISABLE_CNAME_SUPPORT=true" />
+            </div>
+          </div>
         </div>
-        <div className="config-block">
-          Configure <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">lego httpreq</a> with these environment variables:
-          <div className="config-line">
-            <code>HTTPREQ_ENDPOINT=https://{apiDomain}</code>
-            <CopyBtn text={`HTTPREQ_ENDPOINT=https://${apiDomain}`} />
-          </div>
-          <div className="config-line">
-            <code>HTTPREQ_USERNAME={username}</code>
-            <CopyBtn text={`HTTPREQ_USERNAME=${username}`} />
-          </div>
-          <div className="config-line">
-            <code>HTTPREQ_PASSWORD={apiKey}</code>
-            <CopyBtn text={`HTTPREQ_PASSWORD=${apiKey}`} />
-          </div>
-          <div className="config-line">
-            <code>LEGO_DISABLE_CNAME_SUPPORT=true</code>
-            <CopyBtn text="LEGO_DISABLE_CNAME_SUPPORT=true" />
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

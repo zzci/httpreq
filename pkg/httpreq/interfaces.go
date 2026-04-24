@@ -25,6 +25,13 @@ type DB interface {
 	GetSubdomainByUserDomain(userID int64, domain string) (string, error)
 	GetSubdomainOwner(subdomain string) (int64, error)
 
+	// API Key management
+	CreateAPIKey(userID int64, name string, scope []string) (APIKey, error)
+	ListAPIKeys(userID int64) ([]APIKey, error)
+	DeleteAPIKey(userID, keyID int64) error
+	GetAPIKeyByValue(keyValue string) (APIKey, error)
+	UpdateAPIKeyScope(keyID int64, scope []string) error
+
 	// Admin operations
 	ListUsers() ([]User, error)
 	DeleteUser(userID int64) error

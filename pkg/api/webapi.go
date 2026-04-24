@@ -131,6 +131,16 @@ func (a *API) apiGetDomains(w http.ResponseWriter, r *http.Request, _ httprouter
 	if domains == nil {
 		domains = []httpreq.UserDomain{}
 	}
+	// Filter by API key scope if present
+	if key, ok := getAPIKeyFromContext(r); ok && !key.IsGlobal() {
+		filtered := make([]httpreq.UserDomain, 0)
+		for _, d := range domains {
+			if key.HasDomainAccess(d.Domain) {
+				filtered = append(filtered, d)
+			}
+		}
+		domains = filtered
+	}
 	for i := range domains {
 		domains[i].CNAMETarget = httpreq.InternalDomain(domains[i].Subdomain, a.Config.General.Domain)
 	}
@@ -161,6 +171,11 @@ func (a *API) apiAddDomain(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 	ud.CNAMETarget = httpreq.InternalDomain(ud.Subdomain, a.Config.General.Domain)
+	// Auto-expand scoped key's scope with the new domain
+	if key, ok := getAPIKeyFromContext(r); ok && !key.IsGlobal() {
+		newScope := append(key.Scope, domain)
+		_ = a.DB.UpdateAPIKeyScope(key.ID, newScope)
+	}
 	jsonResp(w, http.StatusCreated, ud)
 }
 
@@ -168,6 +183,13 @@ func (a *API) apiAddDomain(w http.ResponseWriter, r *http.Request, _ httprouter.
 func (a *API) apiRemoveDomain(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	user, _ := getUserFromContext(r)
 	domain := strings.ToLower(strings.TrimSpace(p.ByName("domain")))
+	// Scoped key can only delete domains in its scope
+	if key, ok := getAPIKeyFromContext(r); ok && !key.IsGlobal() {
+		if !key.HasDomainAccess(domain) {
+			jsonResp(w, http.StatusForbidden, map[string]string{"error": "domain_not_in_scope"})
+			return
+		}
+	}
 	if err := a.DB.RemoveUserDomain(user.ID, domain); err != nil {
 		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "db_error"})
 		return

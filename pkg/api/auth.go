@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -12,10 +11,14 @@ import (
 
 type contextKey int
 
-const userContextKey contextKey = 0
+const (
+	userContextKey   contextKey = 0
+	apiKeyContextKey contextKey = 1
+)
 
-// JWTAuth middleware for /api/* endpoints. Requires a valid Bearer token.
-func (a *API) JWTAuth(next httprouter.Handle) httprouter.Handle {
+// JWTOrKeyAuth middleware for /api/* endpoints.
+// Accepts JWT Bearer token OR API key as Bearer token.
+func (a *API) JWTOrKeyAuth(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		authHeader := r.Header.Get("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -25,32 +28,39 @@ func (a *API) JWTAuth(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-		claims, err := a.parseToken(tokenStr)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write(jsonError("invalid_token"))
-			return
+
+		// Try JWT first
+		if claims, err := a.parseToken(tokenStr); err == nil {
+			if user, err := a.DB.GetUserByID(claims.UserID); err == nil {
+				ctx := context.WithValue(r.Context(), userContextKey, user)
+				next(w, r.WithContext(ctx), p)
+				return
+			}
 		}
-		user, err := a.DB.GetUserByID(claims.UserID)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write(jsonError("user_not_found"))
-			return
+
+		// Try API key
+		if apiKey, err := a.DB.GetAPIKeyByValue(tokenStr); err == nil {
+			if user, err := a.DB.GetUserByID(apiKey.UserID); err == nil {
+				ctx := context.WithValue(r.Context(), userContextKey, user)
+				ctx = context.WithValue(ctx, apiKeyContextKey, apiKey)
+				next(w, r.WithContext(ctx), p)
+				return
+			}
 		}
-		ctx := context.WithValue(r.Context(), userContextKey, user)
-		next(w, r.WithContext(ctx), p)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write(jsonError("invalid_token"))
 	}
 }
 
 // BasicAuthHTTPreq middleware for /present and /cleanup endpoints.
-// Accepts username + api_key (preferred) or username + password via HTTP Basic Auth.
+// Looks up API key from api_keys table, falls back to users.api_key.
 func (a *API) BasicAuthHTTPreq(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		username, secret, ok := r.BasicAuth()
 		if !ok {
-			w.Header().Set("WWW-Authenticate", `Basic realm="httpdns"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="httpreq"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write(jsonError("unauthorized"))
@@ -58,27 +68,34 @@ func (a *API) BasicAuthHTTPreq(next httprouter.Handle) httprouter.Handle {
 		}
 		user, err := a.DB.GetUserByUsername(username)
 		if err != nil {
-			w.Header().Set("WWW-Authenticate", `Basic realm="httpdns"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="httpreq"`)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write(jsonError("unauthorized"))
 			return
 		}
-		// Basic Auth only accepts api_key, not password
-		authenticated := user.APIKey != "" && subtle.ConstantTimeCompare([]byte(secret), []byte(user.APIKey)) == 1
-		if !authenticated {
-			w.Header().Set("WWW-Authenticate", `Basic realm="httpdns"`)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write(jsonError("unauthorized"))
+
+		// Try api_keys table first
+		if apiKey, err := a.DB.GetAPIKeyByValue(secret); err == nil && apiKey.UserID == user.ID {
+			ctx := context.WithValue(r.Context(), userContextKey, user)
+			ctx = context.WithValue(ctx, apiKeyContextKey, apiKey)
+			next(w, r.WithContext(ctx), p)
 			return
 		}
-		ctx := context.WithValue(r.Context(), userContextKey, user)
-		next(w, r.WithContext(ctx), p)
+
+		w.Header().Set("WWW-Authenticate", `Basic realm="httpreq"`)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write(jsonError("unauthorized"))
 	}
 }
 
 func getUserFromContext(r *http.Request) (httpreq.User, bool) {
 	u, ok := r.Context().Value(userContextKey).(httpreq.User)
 	return u, ok
+}
+
+func getAPIKeyFromContext(r *http.Request) (httpreq.APIKey, bool) {
+	k, ok := r.Context().Value(apiKeyContextKey).(httpreq.APIKey)
+	return k, ok
 }

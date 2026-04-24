@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,7 +28,7 @@ type acmednsdb struct {
 }
 
 // DBVersion shows the database version this code uses.
-var DBVersion = 4
+var DBVersion = 5
 
 var acmeTable = `
 	CREATE TABLE IF NOT EXISTS acmedns(
@@ -85,6 +86,27 @@ var userDomainsTablePG = `
 		UNIQUE(user_id, domain)
 	);`
 
+var apiKeysTable = `
+	CREATE TABLE IF NOT EXISTS api_keys(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		key_value TEXT UNIQUE NOT NULL,
+		scope TEXT NOT NULL DEFAULT '["*"]',
+		created_at INT NOT NULL,
+		FOREIGN KEY(user_id) REFERENCES users(id)
+	);`
+
+var apiKeysTablePG = `
+	CREATE TABLE IF NOT EXISTS api_keys(
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER NOT NULL REFERENCES users(id),
+		name TEXT NOT NULL,
+		key_value TEXT UNIQUE NOT NULL,
+		scope TEXT NOT NULL DEFAULT '["*"]',
+		created_at INT NOT NULL
+	);`
+
 // getSQLiteStmt replaces all PostgreSQL prepared statement placeholders (eg. $1, $2) with SQLite variant "?"
 func getSQLiteStmt(s string) string {
 	re, _ := regexp.Compile(`\$[0-9]+`)
@@ -116,10 +138,12 @@ func Init(config *httpreq.Config, logger *zap.SugaredLogger) (httpreq.DB, error)
 		_, _ = d.DB.Exec(txtTable)
 		_, _ = d.DB.Exec(usersTable)
 		_, _ = d.DB.Exec(userDomainsTable)
+		_, _ = d.DB.Exec(apiKeysTable)
 	} else {
 		_, _ = d.DB.Exec(txtTablePG)
 		_, _ = d.DB.Exec(usersTablePG)
 		_, _ = d.DB.Exec(userDomainsTablePG)
+		_, _ = d.DB.Exec(apiKeysTablePG)
 	}
 	if err == nil {
 		err = d.checkDBUpgrades(versionString)
@@ -157,6 +181,11 @@ func (d *acmednsdb) handleDBUpgrades(version int) error {
 	}
 	if version < 4 {
 		if err := d.handleDBUpgradeTo4(); err != nil {
+			return err
+		}
+	}
+	if version < 5 {
+		if err := d.handleDBUpgradeTo5(); err != nil {
 			return err
 		}
 	}
@@ -233,6 +262,111 @@ func (d *acmednsdb) handleDBUpgradeTo4() error {
 		}
 	}
 	_, err = d.DB.Exec("UPDATE acmedns SET Value='4' WHERE Name='db_version'")
+	return err
+}
+
+func (d *acmednsdb) handleDBUpgradeTo5() error {
+	// api_keys table created in Init, just bump version
+	// Migrate existing users.api_key to api_keys table as default global key
+	rows, err := d.DB.Query("SELECT id, username, api_key FROM users WHERE api_key != '' AND api_key IS NOT NULL")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var userID int64
+			var username, apiKey string
+			if err := rows.Scan(&userID, &username, &apiKey); err == nil {
+				now := time.Now().Unix()
+				_, _ = d.DB.Exec("INSERT OR IGNORE INTO api_keys (user_id, name, key_value, scope, created_at) VALUES (?, ?, ?, ?, ?)",
+					userID, "Default", apiKey, `["*"]`, now)
+			}
+		}
+	}
+	_, err = d.DB.Exec("UPDATE acmedns SET Value='5' WHERE Name='db_version'")
+	return err
+}
+
+// --- API Key methods ---
+
+func (d *acmednsdb) CreateAPIKey(userID int64, name string, scope []string) (httpreq.APIKey, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	keyValue := httpreq.GenerateAPIKey()
+	scopeJSON, _ := json.Marshal(scope)
+	now := time.Now().Unix()
+	insSQL := `INSERT INTO api_keys (user_id, name, key_value, scope, created_at) VALUES ($1, $2, $3, $4, $5)`
+	if d.Config.Database.Engine == "sqlite" {
+		insSQL = getSQLiteStmt(insSQL)
+	}
+	result, err := d.DB.Exec(insSQL, userID, name, keyValue, string(scopeJSON), now)
+	if err != nil {
+		return httpreq.APIKey{}, fmt.Errorf("failed to create api key: %w", err)
+	}
+	id, _ := result.LastInsertId()
+	return httpreq.APIKey{ID: id, UserID: userID, Name: name, Key: keyValue, Scope: scope, CreatedAt: now}, nil
+}
+
+func (d *acmednsdb) ListAPIKeys(userID int64) ([]httpreq.APIKey, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	var keys []httpreq.APIKey
+	getSQL := `SELECT id, user_id, name, key_value, scope, created_at FROM api_keys WHERE user_id=$1 ORDER BY created_at`
+	if d.Config.Database.Engine == "sqlite" {
+		getSQL = getSQLiteStmt(getSQL)
+	}
+	rows, err := d.DB.Query(getSQL, userID)
+	if err != nil {
+		return keys, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var k httpreq.APIKey
+		var scopeJSON string
+		if err := rows.Scan(&k.ID, &k.UserID, &k.Name, &k.Key, &scopeJSON, &k.CreatedAt); err != nil {
+			return keys, err
+		}
+		_ = json.Unmarshal([]byte(scopeJSON), &k.Scope)
+		keys = append(keys, k)
+	}
+	return keys, nil
+}
+
+func (d *acmednsdb) DeleteAPIKey(userID, keyID int64) error {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	delSQL := `DELETE FROM api_keys WHERE id=$1 AND user_id=$2`
+	if d.Config.Database.Engine == "sqlite" {
+		delSQL = getSQLiteStmt(delSQL)
+	}
+	_, err := d.DB.Exec(delSQL, keyID, userID)
+	return err
+}
+
+func (d *acmednsdb) GetAPIKeyByValue(keyValue string) (httpreq.APIKey, error) {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	var k httpreq.APIKey
+	var scopeJSON string
+	getSQL := `SELECT id, user_id, name, key_value, scope, created_at FROM api_keys WHERE key_value=$1`
+	if d.Config.Database.Engine == "sqlite" {
+		getSQL = getSQLiteStmt(getSQL)
+	}
+	err := d.DB.QueryRow(getSQL, keyValue).Scan(&k.ID, &k.UserID, &k.Name, &k.Key, &scopeJSON, &k.CreatedAt)
+	if err != nil {
+		return k, fmt.Errorf("api key not found: %w", err)
+	}
+	_ = json.Unmarshal([]byte(scopeJSON), &k.Scope)
+	return k, nil
+}
+
+func (d *acmednsdb) UpdateAPIKeyScope(keyID int64, scope []string) error {
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	scopeJSON, _ := json.Marshal(scope)
+	updSQL := `UPDATE api_keys SET scope=$1 WHERE id=$2`
+	if d.Config.Database.Engine == "sqlite" {
+		updSQL = getSQLiteStmt(updSQL)
+	}
+	_, err := d.DB.Exec(updSQL, string(scopeJSON), keyID)
 	return err
 }
 
@@ -377,6 +511,13 @@ func (d *acmednsdb) CreateUser(username, passwordHash string) (httpreq.User, err
 		return httpreq.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
 	id, _ := result.LastInsertId()
+	// Create default global key in api_keys table
+	scopeJSON, _ := json.Marshal([]string{"*"})
+	insKeySQL := `INSERT INTO api_keys (user_id, name, key_value, scope, created_at) VALUES ($1, $2, $3, $4, $5)`
+	if d.Config.Database.Engine == "sqlite" {
+		insKeySQL = getSQLiteStmt(insKeySQL)
+	}
+	_, _ = d.DB.Exec(insKeySQL, id, "Default", apiKey, string(scopeJSON), now)
 	return httpreq.User{ID: id, Username: username, PasswordHash: passwordHash, APIKey: apiKey, CreatedAt: now}, nil
 }
 

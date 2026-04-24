@@ -1,6 +1,9 @@
 package httpreq
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Config holds the config structure
 type Config struct {
@@ -70,6 +73,40 @@ type logconfig struct {
 	Logtype string `toml:"logtype"`
 	File    string `toml:"logfile"`
 	Format  string `toml:"logformat"`
+}
+
+// APIKey represents a user's API key with domain scope
+type APIKey struct {
+	ID        int64    `json:"id"`
+	UserID    int64    `json:"-"`
+	Name      string   `json:"name"`
+	Key       string   `json:"key"`
+	Scope     []string `json:"scope"`
+	CreatedAt int64    `json:"created_at"`
+}
+
+// IsGlobal returns true if this key has global scope
+func (k *APIKey) IsGlobal() bool {
+	for _, s := range k.Scope {
+		if s == "*" {
+			return true
+		}
+	}
+	return false
+}
+
+// HasDomainAccess checks if a key can operate on a domain
+func (k *APIKey) HasDomainAccess(domain string) bool {
+	if k.IsGlobal() {
+		return true
+	}
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	for _, s := range k.Scope {
+		if strings.ToLower(s) == domain {
+			return true
+		}
+	}
+	return false
 }
 
 // HTTPReqPayload is the request body for lego httpreq /present and /cleanup

@@ -42,6 +42,14 @@ export interface TXTRecord {
   last_update: string;
 }
 
+export interface APIKeyItem {
+  id: number;
+  name: string;
+  key: string;
+  scope: string[];
+  created_at: number;
+}
+
 export interface InfoResponse {
   base_domain: string;
   api_domain: string;
@@ -74,6 +82,17 @@ export const api = {
     }),
 
   getRecords: () => request<TXTRecord[]>('/api/records'),
+
+  getKeys: () => request<APIKeyItem[]>('/api/keys'),
+
+  createKey: (name: string, scope: string[]) =>
+    request<APIKeyItem>('/api/keys', {
+      method: 'POST',
+      body: JSON.stringify({ name, scope }),
+    }),
+
+  deleteKey: (id: number) =>
+    request<void>(`/api/keys/${id}`, { method: 'DELETE' }),
 
   getProfile: () => request<ProfileResponse>('/api/profile'),
 
