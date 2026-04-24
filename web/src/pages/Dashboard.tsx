@@ -107,24 +107,23 @@ export default function Dashboard() {
       <div className="topbar-brand">
         <div className="topbar-brand-name">HTTPREQ</div>
         <div className="topbar-brand-tagline">ACME httpreq Server</div>
+        <button className="topbar-logout" onClick={() => { clearToken(); navigate('/login'); }}>{username} / Logout</button>
       </div>
       <div className="topbar">
         <div className="topbar-nav">
           <button className={`nav-item ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
-            Domains <span className="nav-count">{domains.length}</span>
+            DOMAINS <span className="nav-count">{domains.length}</span>
           </button>
           <button className={`nav-item ${tab === 'keys' ? 'active' : ''}`} onClick={() => setTab('keys')}>
-            API Keys <span className="nav-count">{keys.length}</span>
+            API KEYS <span className="nav-count">{keys.length}</span>
           </button>
           <button className={`nav-item ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>
-            Config
+            CONFIG
           </button>
         </div>
         <div className="topbar-actions">
           {tab === 'domains' && <button className="btn-action" onClick={() => setShowAddDomain(true)}>+ Domain</button>}
           {tab === 'keys' && <button className="btn-action" onClick={() => setShowAddKey(true)}>+ Key</button>}
-          <span className="topbar-user">{username}</span>
-          <button className="btn-ghost" onClick={() => { clearToken(); navigate('/login'); }}>Logout</button>
         </div>
       </div>
 

@@ -153,7 +153,22 @@ body {
 .topbar-brand {
   text-align: center;
   padding: 1rem 0 0.75rem;
+  position: relative;
 }
+
+.topbar-logout {
+  position: absolute;
+  right: 0;
+  top: 1rem;
+  background: none;
+  border: none;
+  color: var(--slate-400);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.topbar-logout:hover { color: var(--slate-700); }
 
 .topbar-brand-name {
   font-size: 1.3rem;
