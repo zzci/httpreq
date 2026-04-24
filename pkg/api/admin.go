@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,7 +36,7 @@ func (a *API) adminListUsers(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 	if users == nil {
-		users = []httpdns.User{}
+		users = []httpreq.User{}
 	}
 	jsonResp(w, http.StatusOK, users)
 }
@@ -91,10 +91,10 @@ func (a *API) adminListDomains(w http.ResponseWriter, r *http.Request, _ httprou
 		return
 	}
 	if domains == nil {
-		domains = []httpdns.UserDomain{}
+		domains = []httpreq.UserDomain{}
 	}
 	for i := range domains {
-		domains[i].CNAMETarget = httpdns.InternalDomain(domains[i].Subdomain, a.Config.General.Domain)
+		domains[i].CNAMETarget = httpreq.InternalDomain(domains[i].Subdomain, a.Config.General.Domain)
 	}
 	jsonResp(w, http.StatusOK, domains)
 }
@@ -128,7 +128,7 @@ func (a *API) adminAddDomain(w http.ResponseWriter, r *http.Request, _ httproute
 		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "db_error"})
 		return
 	}
-	ud.CNAMETarget = httpdns.InternalDomain(ud.Subdomain, a.Config.General.Domain)
+	ud.CNAMETarget = httpreq.InternalDomain(ud.Subdomain, a.Config.General.Domain)
 	jsonResp(w, http.StatusCreated, ud)
 }
 
@@ -152,7 +152,7 @@ func (a *API) adminListRecords(w http.ResponseWriter, r *http.Request, _ httprou
 		return
 	}
 	if records == nil {
-		records = []httpdns.TXTRecord{}
+		records = []httpreq.TXTRecord{}
 	}
 	jsonResp(w, http.StatusOK, records)
 }

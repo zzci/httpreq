@@ -1,7 +1,7 @@
 services:
-  httpdns:
-    image: zzci/httpdns:latest
-    container_name: httpdns
+  httpreq:
+    image: zzci/httpreq:latest
+    container_name: httpreq
     restart: unless-stopped
     ports:
       - "53:53"

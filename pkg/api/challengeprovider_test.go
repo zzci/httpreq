@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 	"github.com/mholt/acmez/v3/acme"
 )
 
 type mockNameserver struct {
-	httpdns.NS
+	httpreq.NS
 	authKey string
 }
 
@@ -19,7 +19,7 @@ func (m *mockNameserver) SetOwnAuthKey(key string) {
 
 func TestChallengeProvider(t *testing.T) {
 	mock := &mockNameserver{}
-	servers := []httpdns.NS{mock}
+	servers := []httpreq.NS{mock}
 	cp := NewChallengeProvider(servers)
 
 	ctx := context.Background()

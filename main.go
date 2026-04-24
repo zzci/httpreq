@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
-	"github.com/zzci/httpdns/pkg/api"
-	"github.com/zzci/httpdns/pkg/database"
-	"github.com/zzci/httpdns/pkg/nameserver"
+	"github.com/zzci/httpreq/pkg/httpreq"
+	"github.com/zzci/httpreq/pkg/api"
+	"github.com/zzci/httpreq/pkg/database"
+	"github.com/zzci/httpreq/pkg/nameserver"
 
 	"go.uber.org/zap"
 )
@@ -20,7 +20,7 @@ func main() {
 	// Read global config
 	var err error
 	var logger *zap.Logger
-	config, err := httpdns.ReadConfig(*configPtr)
+	config, err := httpreq.ReadConfig(*configPtr)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
@@ -28,7 +28,7 @@ func main() {
 	if port := os.Getenv("PORT"); port != "" {
 		config.API.Port = port
 	}
-	logger, err = httpdns.SetupLogging(config)
+	logger, err = httpreq.SetupLogging(config)
 	if err != nil {
 		fmt.Printf("Could not set up logging: %s\n", err)
 		os.Exit(1)

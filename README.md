@@ -1,4 +1,4 @@
-# httpdns
+# httpreq
 
 DNS TXT record management server for ACME DNS-01 challenges, compatible with [lego httpreq](https://go-acme.github.io/lego/dns/httpreq/) provider.
 
@@ -22,7 +22,7 @@ DNS TXT record management server for ACME DNS-01 challenges, compatible with [le
 └─────────────┘                └──────────┬───────────┘
                                           │
 ┌─────────┐  POST /present   ┌───────────▼───────────┐
-│  lego   │ ────────────────▶ │       httpdns         │
+│  lego   │ ────────────────▶ │       httpreq         │
 │ httpreq │  Basic Auth       │  stores TXT record    │
 └─────────┘  (user:api_key)   │  serves DNS queries   │
                               └───────────────────────┘
@@ -32,7 +32,7 @@ DNS TXT record management server for ACME DNS-01 challenges, compatible with [le
 2. System assigns a nanoid subdomain (e.g. `r0hc4bc6`) and shows the CNAME record to configure
 3. User sets CNAME: `_acme-challenge.example.com → r0hc4bc6.s.dnsall.com`
 4. lego calls `/present` with the challenge token via httpreq
-5. httpdns stores the TXT record, DNS server responds to CA queries
+5. httpreq stores the TXT record, DNS server responds to CA queries
 6. Certificate issued, lego calls `/cleanup`
 
 ## Quick Start
@@ -41,8 +41,8 @@ DNS TXT record management server for ACME DNS-01 challenges, compatible with [le
 
 ```yaml
 services:
-  httpdns:
-    image: zzci/httpdns:latest
+  httpreq:
+    image: zzci/httpreq:latest
     restart: unless-stopped
     ports:
       - "53:53"
@@ -68,7 +68,7 @@ records = [
 
 [database]
 engine = "sqlite"
-connection = "data/db/httpdns.db"
+connection = "data/db/httpreq.db"
 
 [api]
 api_domain = "api.dnsall.com"
@@ -91,8 +91,8 @@ docker compose up -d
 ### Binary
 
 ```bash
-CGO_ENABLED=0 go build -o httpdns .
-./httpdns -c data/config.cfg
+CGO_ENABLED=0 go build -o httpreq .
+./httpreq -c data/config.cfg
 ```
 
 ## Usage with lego
@@ -185,7 +185,7 @@ services:
 | general | listen | DNS listen address | `127.0.0.1:53` |
 | general | protocol | `both`, `udp`, `tcp` | `both` |
 | database | engine | `sqlite` or `postgres` | `sqlite` |
-| database | connection | DB path or connection string | `data/db/httpdns.db` |
+| database | connection | DB path or connection string | `data/db/httpreq.db` |
 | api | api_domain | API domain (for display) | falls back to general.domain |
 | api | port | HTTP listen port | `443` |
 | api | tls | `none`, `cert`, `letsencrypt` | `none` |
@@ -197,7 +197,7 @@ services:
 ```bash
 # Backend
 go test ./pkg/...
-go build -o httpdns .
+go build -o httpreq .
 
 # Frontend
 cd web
@@ -206,7 +206,7 @@ npm run dev    # dev server with proxy to localhost:3000
 
 # Build frontend + embed into binary
 cd web && npx vite build && cd ..
-CGO_ENABLED=0 go build -o httpdns .
+CGO_ENABLED=0 go build -o httpreq .
 ```
 
 ## License

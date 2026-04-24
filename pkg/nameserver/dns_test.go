@@ -13,8 +13,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
-	"github.com/zzci/httpdns/pkg/database"
+	"github.com/zzci/httpreq/pkg/httpreq"
+	"github.com/zzci/httpreq/pkg/database"
 )
 
 type resolver struct {
@@ -33,8 +33,8 @@ func loggerHasEntryWithMessage(message string, logObserver *observer.ObservedLog
 	return len(logObserver.FilterMessage(message).All()) > 0
 }
 
-func fakeConfigAndLogger() (httpdns.Config, *zap.SugaredLogger, *observer.ObservedLogs) {
-	c := httpdns.Config{}
+func fakeConfigAndLogger() (httpreq.Config, *zap.SugaredLogger, *observer.ObservedLogs) {
+	c := httpreq.Config{}
 	c.Database.Engine = "sqlite"
 	c.Database.Connection = ":memory:"
 	obsCore, logObserver := observer.New(zap.DebugLevel)
@@ -42,7 +42,7 @@ func fakeConfigAndLogger() (httpdns.Config, *zap.SugaredLogger, *observer.Observ
 	return c, obsLogger, logObserver
 }
 
-func setupDNS() (httpdns.NS, httpdns.DB, *observer.ObservedLogs) {
+func setupDNS() (httpreq.NS, httpreq.DB, *observer.ObservedLogs) {
 	config, logger, logObserver := fakeConfigAndLogger()
 	config.General.Domain = "auth.example.org"
 	config.General.Listen = "127.0.0.1:15353"

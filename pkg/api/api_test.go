@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/zzci/httpdns/pkg/database"
-	"github.com/zzci/httpdns/pkg/httpdns"
-	"github.com/zzci/httpdns/pkg/nameserver"
+	"github.com/zzci/httpreq/pkg/database"
+	"github.com/zzci/httpreq/pkg/httpreq"
+	"github.com/zzci/httpreq/pkg/nameserver"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/gavv/httpexpect"
@@ -16,8 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func fakeConfigAndLogger() (httpdns.Config, *zap.SugaredLogger) {
-	c := httpdns.Config{}
+func fakeConfigAndLogger() (httpreq.Config, *zap.SugaredLogger) {
+	c := httpreq.Config{}
 	c.Database.Engine = "sqlite"
 	c.Database.Connection = ":memory:"
 	c.API.JWTSecret = "test-secret-key-for-testing-only"
@@ -32,12 +32,12 @@ func getExpect(t *testing.T, server *httptest.Server) *httpexpect.Expect {
 	})
 }
 
-func setupTestServer() (*httptest.Server, API, httpdns.DB) {
+func setupTestServer() (*httptest.Server, API, httpreq.DB) {
 	router := httprouter.New()
 	config, logger := fakeConfigAndLogger()
 	config.General.Domain = "dnsall.com"
 	config.API.Port = "8080"
-	config.API.TLS = httpdns.TLSProviderNone
+	config.API.TLS = httpreq.TLSProviderNone
 	config.API.CorsOrigins = []string{"*"}
 
 	db, _ := database.Init(&config, logger)
@@ -272,12 +272,12 @@ func TestSetupTLS(t *testing.T) {
 		apiTls     string
 		expectedCA string
 	}{
-		{httpdns.TLSProviderLetsEncrypt, certmagic.LetsEncryptProductionCA},
-		{httpdns.TLSProviderLetsEncryptStaging, certmagic.LetsEncryptStagingCA},
+		{httpreq.TLSProviderLetsEncrypt, certmagic.LetsEncryptProductionCA},
+		{httpreq.TLSProviderLetsEncryptStaging, certmagic.LetsEncryptStagingCA},
 	} {
 		svr.Config.API.TLS = test.apiTls
 		ns := &nameserver.Nameserver{}
-		magic := svr.setupTLS([]httpdns.NS{ns})
+		magic := svr.setupTLS([]httpreq.NS{ns})
 		if test.expectedCA != certmagic.DefaultACME.CA {
 			t.Errorf("got CA %s, want %s", certmagic.DefaultACME.CA, test.expectedCA)
 		}

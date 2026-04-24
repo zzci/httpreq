@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
-	"github.com/zzci/httpdns/web"
+	"github.com/zzci/httpreq/pkg/httpreq"
+	"github.com/zzci/httpreq/web"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/julienschmidt/httprouter"
@@ -19,18 +19,18 @@ import (
 )
 
 type API struct {
-	Config  *httpdns.Config
-	DB      httpdns.DB
+	Config  *httpreq.Config
+	DB      httpreq.DB
 	Logger  *zap.SugaredLogger
 	errChan chan error
 }
 
-func Init(config *httpdns.Config, db httpdns.DB, logger *zap.SugaredLogger, errChan chan error) API {
+func Init(config *httpreq.Config, db httpreq.DB, logger *zap.SugaredLogger, errChan chan error) API {
 	a := API{Config: config, DB: db, Logger: logger, errChan: errChan}
 	return a
 }
 
-func (a *API) Start(dnsservers []httpdns.NS) {
+func (a *API) Start(dnsservers []httpreq.NS) {
 	var err error
 	stderrorlog, err := zap.NewStdLogAt(a.Logger.Desugar(), zap.ErrorLevel)
 	if err != nil {
@@ -88,7 +88,7 @@ func (a *API) Start(dnsservers []httpdns.NS) {
 	}
 
 	switch a.Config.API.TLS {
-	case httpdns.TLSProviderLetsEncrypt, httpdns.TLSProviderLetsEncryptStaging:
+	case httpreq.TLSProviderLetsEncrypt, httpreq.TLSProviderLetsEncryptStaging:
 		magic := a.setupTLS(dnsservers)
 		err = magic.ManageAsync(context.Background(), []string{a.Config.General.Domain})
 		if err != nil {
@@ -109,7 +109,7 @@ func (a *API) Start(dnsservers []httpdns.NS) {
 			"host", host,
 			"domain", a.Config.General.Domain)
 		err = srv.ListenAndServeTLS("", "")
-	case httpdns.TLSProviderCert:
+	case httpreq.TLSProviderCert:
 		srv := &http.Server{
 			Addr:         host,
 			Handler:      handler,
@@ -198,7 +198,7 @@ func (a *API) withSPA(router http.Handler) http.Handler {
 	})
 }
 
-func (a *API) setupTLS(dnsservers []httpdns.NS) *certmagic.Config {
+func (a *API) setupTLS(dnsservers []httpreq.NS) *certmagic.Config {
 	provider := NewChallengeProvider(dnsservers)
 	certmagic.Default.Logger = a.Logger.Desugar()
 	storage := certmagic.FileStorage{Path: a.Config.API.ACMECacheDir}
@@ -206,7 +206,7 @@ func (a *API) setupTLS(dnsservers []httpdns.NS) *certmagic.Config {
 	certmagic.DefaultACME.DNS01Solver = &provider
 	certmagic.DefaultACME.Agreed = true
 	certmagic.DefaultACME.Logger = a.Logger.Desugar()
-	if a.Config.API.TLS == httpdns.TLSProviderLetsEncrypt {
+	if a.Config.API.TLS == httpreq.TLSProviderLetsEncrypt {
 		certmagic.DefaultACME.CA = certmagic.LetsEncryptProductionCA
 	} else {
 		certmagic.DefaultACME.CA = certmagic.LetsEncryptStagingCA

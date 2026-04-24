@@ -5,18 +5,18 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
-func fakeConfigAndLogger() (httpdns.Config, *zap.SugaredLogger) {
-	c := httpdns.Config{}
+func fakeConfigAndLogger() (httpreq.Config, *zap.SugaredLogger) {
+	c := httpreq.Config{}
 	c.Database.Engine = "sqlite"
 	c.Database.Connection = ":memory:"
 	l := zap.NewNop().Sugar()
 	return c, l
 }
 
-func fakeDB() httpdns.DB {
+func fakeDB() httpreq.DB {
 	conf, logger := fakeConfigAndLogger()
 	db, _ := Init(&conf, logger)
 	return db

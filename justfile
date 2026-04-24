@@ -6,7 +6,7 @@ web-build:
 
 # Build Go binary (with embedded frontend)
 build: web-build
-    CGO_ENABLED=0 go build -o httpdns .
+    CGO_ENABLED=0 go build -o httpreq .
 
 # Run all tests
 test:
@@ -15,20 +15,20 @@ test:
 # Start dev server (backend + frontend via nsl)
 dev:
     #!/usr/bin/env bash
-    nsl run -n httpdns ./httpdns -c config.cfg &
+    nsl run -n httpreq ./httpreq -c config.cfg &
     BACKEND_PID=$!
-    cd web && nsl run -n httpdns-dev npx vite --port NSL_PORT &
+    cd web && nsl run -n httpreq-dev npx vite --port NSL_PORT &
     FRONTEND_PID=$!
     trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
     wait
 
 # Start backend only via nsl
 serve:
-    nsl run -n httpdns ./httpdns -c config.cfg
+    nsl run -n httpreq ./httpreq -c config.cfg
 
 # Clean build artifacts and data
 clean:
-    rm -f httpdns
+    rm -f httpreq
     rm -rf web/dist
 
 # Format and lint

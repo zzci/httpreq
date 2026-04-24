@@ -5,16 +5,16 @@ import (
 
 	"github.com/mholt/acmez/v3/acme"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 // ChallengeProvider implements go-acme/lego Provider interface which is used for ACME DNS challenge handling
 type ChallengeProvider struct {
-	servers []httpdns.NS
+	servers []httpreq.NS
 }
 
 // NewChallengeProvider creates a new instance of ChallengeProvider
-func NewChallengeProvider(servers []httpdns.NS) ChallengeProvider {
+func NewChallengeProvider(servers []httpreq.NS) ChallengeProvider {
 	return ChallengeProvider{servers: servers}
 }
 

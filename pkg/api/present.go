@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 // resolveSubdomain resolves the nanoid subdomain from the FQDN.
@@ -13,7 +13,7 @@ import (
 // or the CNAME-resolved FQDN (r0hc4bc6.s.dnsall.com.).
 func (a *API) resolveSubdomain(userID int64, fqdn string) (string, error) {
 	// Case 1: FQDN is under our base domain (CNAME-resolved), e.g. r0hc4bc6.s.dnsall.com
-	if sub, ok := httpdns.ExtractSubdomainFromFQDN(fqdn, a.Config.General.Domain); ok {
+	if sub, ok := httpreq.ExtractSubdomainFromFQDN(fqdn, a.Config.General.Domain); ok {
 		// Verify this subdomain belongs to the authenticated user
 		ownerID, err := a.DB.GetSubdomainOwner(sub)
 		if err == nil && ownerID == userID {
@@ -22,13 +22,13 @@ func (a *API) resolveSubdomain(userID int64, fqdn string) (string, error) {
 	}
 
 	// Case 2: Original FQDN, e.g. _acme-challenge.pvv.cc
-	domain := httpdns.ExtractDomainFromFQDN(fqdn)
+	domain := httpreq.ExtractDomainFromFQDN(fqdn)
 	return a.DB.GetSubdomainByUserDomain(userID, domain)
 }
 
 // webPresentPost handles POST /present (lego httpreq DNS provider).
 func (a *API) webPresentPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var payload httpdns.HTTPReqPayload
+	var payload httpreq.HTTPReqPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		a.Logger.Errorw("Present: JSON decode error", "error", err.Error())
 		w.Header().Set("Content-Type", "application/json")
@@ -61,7 +61,7 @@ func (a *API) webPresentPost(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	internalDomain := httpdns.InternalDomain(subdomain, a.Config.General.Domain)
+	internalDomain := httpreq.InternalDomain(subdomain, a.Config.General.Domain)
 
 	if err := a.DB.PresentTXT(internalDomain, payload.Value); err != nil {
 		a.Logger.Errorw("Present: DB error", "error", err.Error())
@@ -74,7 +74,7 @@ func (a *API) webPresentPost(w http.ResponseWriter, r *http.Request, _ httproute
 	a.Logger.Infow("TXT record presented",
 		"fqdn", payload.FQDN, "internal_domain", internalDomain)
 
-	resp := httpdns.HTTPReqResponse{
+	resp := httpreq.HTTPReqResponse{
 		InternalDomain: internalDomain,
 		CNAMETarget:    internalDomain,
 	}

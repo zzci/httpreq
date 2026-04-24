@@ -16,14 +16,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 type acmednsdb struct {
 	DB     *sql.DB
 	Mutex  sync.Mutex
 	Logger *zap.SugaredLogger
-	Config *httpdns.Config
+	Config *httpreq.Config
 }
 
 // DBVersion shows the database version this code uses.
@@ -91,7 +91,7 @@ func getSQLiteStmt(s string) string {
 	return re.ReplaceAllString(s, "?")
 }
 
-func Init(config *httpdns.Config, logger *zap.SugaredLogger) (httpdns.DB, error) {
+func Init(config *httpreq.Config, logger *zap.SugaredLogger) (httpreq.DB, error) {
 	var d = &acmednsdb{Config: config, Logger: logger}
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
@@ -227,7 +227,7 @@ func (d *acmednsdb) handleDBUpgradeTo4() error {
 		for rows.Next() {
 			var id int64
 			if err := rows.Scan(&id); err == nil {
-				key := httpdns.GenerateAPIKey()
+				key := httpreq.GenerateAPIKey()
 				_, _ = d.DB.Exec("UPDATE users SET api_key = ? WHERE id = ?", key, id)
 			}
 		}
@@ -302,17 +302,17 @@ func (d *acmednsdb) GetTXTForDomain(domain string) ([]string, error) {
 	return txts, nil
 }
 
-func (d *acmednsdb) ListTXTRecords() ([]httpdns.TXTRecord, error) {
+func (d *acmednsdb) ListTXTRecords() ([]httpreq.TXTRecord, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var records []httpdns.TXTRecord
+	var records []httpreq.TXTRecord
 	rows, err := d.DB.Query("SELECT Domain, Value, LastUpdate FROM txt ORDER BY LastUpdate DESC")
 	if err != nil {
 		return records, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var r httpdns.TXTRecord
+		var r httpreq.TXTRecord
 		var ts int64
 		err = rows.Scan(&r.Domain, &r.Value, &ts)
 		if err != nil {
@@ -324,13 +324,13 @@ func (d *acmednsdb) ListTXTRecords() ([]httpdns.TXTRecord, error) {
 	return records, nil
 }
 
-func (d *acmednsdb) ListTXTRecordsByDomains(domains []string) ([]httpdns.TXTRecord, error) {
+func (d *acmednsdb) ListTXTRecordsByDomains(domains []string) ([]httpreq.TXTRecord, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	if len(domains) == 0 {
 		return nil, nil
 	}
-	var records []httpdns.TXTRecord
+	var records []httpreq.TXTRecord
 	placeholders := make([]string, len(domains))
 	args := make([]interface{}, len(domains))
 	for i, dom := range domains {
@@ -349,7 +349,7 @@ func (d *acmednsdb) ListTXTRecordsByDomains(domains []string) ([]httpdns.TXTReco
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var r httpdns.TXTRecord
+		var r httpreq.TXTRecord
 		var ts int64
 		err = rows.Scan(&r.Domain, &r.Value, &ts)
 		if err != nil {
@@ -363,27 +363,27 @@ func (d *acmednsdb) ListTXTRecordsByDomains(domains []string) ([]httpdns.TXTReco
 
 // --- User methods ---
 
-func (d *acmednsdb) CreateUser(username, passwordHash string) (httpdns.User, error) {
+func (d *acmednsdb) CreateUser(username, passwordHash string) (httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	now := time.Now().Unix()
-	apiKey := httpdns.GenerateAPIKey()
+	apiKey := httpreq.GenerateAPIKey()
 	insSQL := `INSERT INTO users (username, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4)`
 	if d.Config.Database.Engine == "sqlite" {
 		insSQL = getSQLiteStmt(insSQL)
 	}
 	result, err := d.DB.Exec(insSQL, username, passwordHash, apiKey, now)
 	if err != nil {
-		return httpdns.User{}, fmt.Errorf("failed to create user: %w", err)
+		return httpreq.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
 	id, _ := result.LastInsertId()
-	return httpdns.User{ID: id, Username: username, PasswordHash: passwordHash, APIKey: apiKey, CreatedAt: now}, nil
+	return httpreq.User{ID: id, Username: username, PasswordHash: passwordHash, APIKey: apiKey, CreatedAt: now}, nil
 }
 
-func (d *acmednsdb) GetUserByUsername(username string) (httpdns.User, error) {
+func (d *acmednsdb) GetUserByUsername(username string) (httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var u httpdns.User
+	var u httpreq.User
 	getSQL := `SELECT id, username, password_hash, api_key, created_at FROM users WHERE username=$1`
 	if d.Config.Database.Engine == "sqlite" {
 		getSQL = getSQLiteStmt(getSQL)
@@ -395,10 +395,10 @@ func (d *acmednsdb) GetUserByUsername(username string) (httpdns.User, error) {
 	return u, nil
 }
 
-func (d *acmednsdb) GetUserByID(id int64) (httpdns.User, error) {
+func (d *acmednsdb) GetUserByID(id int64) (httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var u httpdns.User
+	var u httpreq.User
 	getSQL := `SELECT id, username, password_hash, api_key, created_at FROM users WHERE id=$1`
 	if d.Config.Database.Engine == "sqlite" {
 		getSQL = getSQLiteStmt(getSQL)
@@ -413,7 +413,7 @@ func (d *acmednsdb) GetUserByID(id int64) (httpdns.User, error) {
 func (d *acmednsdb) RegenerateAPIKey(userID int64) (string, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	newKey := httpdns.GenerateAPIKey()
+	newKey := httpreq.GenerateAPIKey()
 	updSQL := `UPDATE users SET api_key=$1 WHERE id=$2`
 	if d.Config.Database.Engine == "sqlite" {
 		updSQL = getSQLiteStmt(updSQL)
@@ -427,7 +427,7 @@ func (d *acmednsdb) RegenerateAPIKey(userID int64) (string, error) {
 
 // --- Domain methods ---
 
-func (d *acmednsdb) AddUserDomain(userID int64, username, domain string) (httpdns.UserDomain, error) {
+func (d *acmednsdb) AddUserDomain(userID int64, username, domain string) (httpreq.UserDomain, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
 	domain = strings.ToLower(strings.TrimSpace(domain))
@@ -437,22 +437,22 @@ func (d *acmednsdb) AddUserDomain(userID int64, username, domain string) (httpdn
 	}
 	// Try with increasing salt on subdomain collision (max 10 attempts)
 	for salt := 0; salt < 10; salt++ {
-		subdomain := httpdns.GenerateSubdomain(username, domain, salt)
+		subdomain := httpreq.GenerateSubdomain(username, domain, salt)
 		_, err := d.DB.Exec(insSQL, userID, domain, subdomain)
 		if err == nil {
-			return httpdns.UserDomain{Domain: domain, Subdomain: subdomain}, nil
+			return httpreq.UserDomain{Domain: domain, Subdomain: subdomain}, nil
 		}
 		errStr := strings.ToLower(err.Error())
 		// Only retry on subdomain uniqueness collision, not on user_id+domain duplicate
 		if !strings.Contains(errStr, "unique") && !strings.Contains(errStr, "duplicate") {
-			return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
+			return httpreq.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
 		}
 		// Check if it's a user_id+domain duplicate (not a subdomain collision)
 		if strings.Contains(errStr, "user_id") || strings.Contains(errStr, "user_domains.user_id") {
-			return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
+			return httpreq.UserDomain{}, fmt.Errorf("failed to add domain: %w", err)
 		}
 	}
-	return httpdns.UserDomain{}, fmt.Errorf("failed to add domain: subdomain collision after retries")
+	return httpreq.UserDomain{}, fmt.Errorf("failed to add domain: subdomain collision after retries")
 }
 
 func (d *acmednsdb) RemoveUserDomain(userID int64, domain string) error {
@@ -467,10 +467,10 @@ func (d *acmednsdb) RemoveUserDomain(userID int64, domain string) error {
 	return err
 }
 
-func (d *acmednsdb) GetUserDomains(userID int64) ([]httpdns.UserDomain, error) {
+func (d *acmednsdb) GetUserDomains(userID int64) ([]httpreq.UserDomain, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var domains []httpdns.UserDomain
+	var domains []httpreq.UserDomain
 	getSQL := `SELECT domain, subdomain FROM user_domains WHERE user_id=$1 ORDER BY domain`
 	if d.Config.Database.Engine == "sqlite" {
 		getSQL = getSQLiteStmt(getSQL)
@@ -481,7 +481,7 @@ func (d *acmednsdb) GetUserDomains(userID int64) ([]httpdns.UserDomain, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ud httpdns.UserDomain
+		var ud httpreq.UserDomain
 		if err := rows.Scan(&ud.Domain, &ud.Subdomain); err != nil {
 			return domains, err
 		}
@@ -524,17 +524,17 @@ func (d *acmednsdb) GetSubdomainOwner(subdomain string) (int64, error) {
 
 // --- Admin methods ---
 
-func (d *acmednsdb) ListUsers() ([]httpdns.User, error) {
+func (d *acmednsdb) ListUsers() ([]httpreq.User, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var users []httpdns.User
+	var users []httpreq.User
 	rows, err := d.DB.Query("SELECT id, username, password_hash, api_key, created_at FROM users ORDER BY id")
 	if err != nil {
 		return users, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var u httpdns.User
+		var u httpreq.User
 		if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.APIKey, &u.CreatedAt); err != nil {
 			return users, err
 		}
@@ -559,17 +559,17 @@ func (d *acmednsdb) DeleteUser(userID int64) error {
 	return err
 }
 
-func (d *acmednsdb) ListAllDomains() ([]httpdns.UserDomain, error) {
+func (d *acmednsdb) ListAllDomains() ([]httpreq.UserDomain, error) {
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	var domains []httpdns.UserDomain
+	var domains []httpreq.UserDomain
 	rows, err := d.DB.Query("SELECT ud.domain, ud.subdomain, u.username FROM user_domains ud JOIN users u ON ud.user_id = u.id ORDER BY ud.domain")
 	if err != nil {
 		return domains, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ud httpdns.UserDomain
+		var ud httpreq.UserDomain
 		var owner string
 		if err := rows.Scan(&ud.Domain, &ud.Subdomain, &owner); err != nil {
 			return domains, err

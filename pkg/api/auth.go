@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 type contextKey int
@@ -78,7 +78,7 @@ func (a *API) BasicAuthHTTPreq(next httprouter.Handle) httprouter.Handle {
 	}
 }
 
-func getUserFromContext(r *http.Request) (httpdns.User, bool) {
-	u, ok := r.Context().Value(userContextKey).(httpdns.User)
+func getUserFromContext(r *http.Request) (httpreq.User, bool) {
+	u, ok := r.Context().Value(userContextKey).(httpreq.User)
 	return u, ok
 }

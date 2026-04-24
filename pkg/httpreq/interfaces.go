@@ -1,0 +1,43 @@
+package httpreq
+
+import (
+	"database/sql"
+)
+
+type DB interface {
+	// TXT record management
+	PresentTXT(fqdn, value string) error
+	CleanupTXT(fqdn, value string) error
+	GetTXTForDomain(string) ([]string, error)
+	ListTXTRecords() ([]TXTRecord, error)
+	ListTXTRecordsByDomains(domains []string) ([]TXTRecord, error)
+
+	// User management
+	CreateUser(username, passwordHash string) (User, error)
+	GetUserByUsername(username string) (User, error)
+	GetUserByID(id int64) (User, error)
+	RegenerateAPIKey(userID int64) (string, error)
+
+	// Domain management
+	AddUserDomain(userID int64, username, domain string) (UserDomain, error)
+	RemoveUserDomain(userID int64, domain string) error
+	GetUserDomains(userID int64) ([]UserDomain, error)
+	GetSubdomainByUserDomain(userID int64, domain string) (string, error)
+	GetSubdomainOwner(subdomain string) (int64, error)
+
+	// Admin operations
+	ListUsers() ([]User, error)
+	DeleteUser(userID int64) error
+	ListAllDomains() ([]UserDomain, error)
+
+	GetBackend() *sql.DB
+	SetBackend(*sql.DB)
+	Close()
+}
+
+type NS interface {
+	Start(errorChannel chan error)
+	SetOwnAuthKey(key string)
+	SetNotifyStartedFunc(func())
+	ParseRecords()
+}

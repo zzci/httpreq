@@ -1,4 +1,4 @@
-module github.com/zzci/httpdns
+module github.com/zzci/httpreq
 
 go 1.24
 

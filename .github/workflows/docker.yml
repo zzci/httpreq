@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: zzci/httpdns
+  IMAGE_NAME: zzci/httpreq
 
 jobs:
   push:
@@ -59,13 +59,13 @@ jobs:
 
       - name: Package release assets
         run: |
-          mkdir -p httpdns/data/db httpdns/data/logs httpdns/data/certs
-          cp config.cfg httpdns/data/config.cfg
-          cp docker-compose.yml httpdns/ 2>/dev/null || true
-          tar czf httpdns-${{ github.ref_name }}.tar.gz httpdns/
+          mkdir -p httpreq/data/db httpreq/data/logs httpreq/data/certs
+          cp config.cfg httpreq/data/config.cfg
+          cp docker-compose.yml httpreq/ 2>/dev/null || true
+          tar czf httpreq-${{ github.ref_name }}.tar.gz httpreq/
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: httpdns-${{ github.ref_name }}.tar.gz
+          files: httpreq-${{ github.ref_name }}.tar.gz
           generate_release_notes: true

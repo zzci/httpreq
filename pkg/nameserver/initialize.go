@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 // Records is a slice of ResourceRecords
@@ -17,8 +17,8 @@ type Records struct {
 }
 
 type Nameserver struct {
-	Config            *httpdns.Config
-	DB                httpdns.DB
+	Config            *httpreq.Config
+	DB                httpreq.DB
 	Logger            *zap.SugaredLogger
 	Server            *dns.Server
 	OwnDomain         string
@@ -30,8 +30,8 @@ type Nameserver struct {
 	errChan           chan error
 }
 
-func InitAndStart(config *httpdns.Config, db httpdns.DB, logger *zap.SugaredLogger, errChan chan error) []httpdns.NS {
-	dnsservers := make([]httpdns.NS, 0)
+func InitAndStart(config *httpreq.Config, db httpreq.DB, logger *zap.SugaredLogger, errChan chan error) []httpreq.NS {
+	dnsservers := make([]httpreq.NS, 0)
 	waitLock := sync.Mutex{}
 	if strings.HasPrefix(config.General.Proto, "both") {
 
@@ -72,7 +72,7 @@ func InitAndStart(config *httpdns.Config, db httpdns.DB, logger *zap.SugaredLogg
 }
 
 // NewDNSServer parses the DNS records from config and returns a new DNSServer struct
-func NewDNSServer(config *httpdns.Config, db httpdns.DB, logger *zap.SugaredLogger, proto string) httpdns.NS {
+func NewDNSServer(config *httpreq.Config, db httpreq.DB, logger *zap.SugaredLogger, proto string) httpreq.NS {
 	//		dnsServerTCP := NewDNSServer(DB, Config.General.Listen, tcpProto, Config.General.Domain)
 	server := Nameserver{Config: config, DB: db, Logger: logger}
 	server.Server = &dns.Server{Addr: config.General.Listen, Net: proto}

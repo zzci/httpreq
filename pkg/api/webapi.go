@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -107,7 +107,7 @@ func (a *API) apiDeleteAccount(w http.ResponseWriter, r *http.Request, _ httprou
 	// Clean up TXT records for all user domains
 	domains, _ := a.DB.GetUserDomains(user.ID)
 	for _, d := range domains {
-		internalDomain := httpdns.InternalDomain(d.Subdomain, a.Config.General.Domain)
+		internalDomain := httpreq.InternalDomain(d.Subdomain, a.Config.General.Domain)
 		txts, _ := a.DB.GetTXTForDomain(internalDomain)
 		for _, v := range txts {
 			_ = a.DB.CleanupTXT(internalDomain, v)
@@ -129,10 +129,10 @@ func (a *API) apiGetDomains(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 	if domains == nil {
-		domains = []httpdns.UserDomain{}
+		domains = []httpreq.UserDomain{}
 	}
 	for i := range domains {
-		domains[i].CNAMETarget = httpdns.InternalDomain(domains[i].Subdomain, a.Config.General.Domain)
+		domains[i].CNAMETarget = httpreq.InternalDomain(domains[i].Subdomain, a.Config.General.Domain)
 	}
 	jsonResp(w, http.StatusOK, domains)
 }
@@ -160,7 +160,7 @@ func (a *API) apiAddDomain(w http.ResponseWriter, r *http.Request, _ httprouter.
 		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "db_error"})
 		return
 	}
-	ud.CNAMETarget = httpdns.InternalDomain(ud.Subdomain, a.Config.General.Domain)
+	ud.CNAMETarget = httpreq.InternalDomain(ud.Subdomain, a.Config.General.Domain)
 	jsonResp(w, http.StatusCreated, ud)
 }
 
@@ -185,7 +185,7 @@ func (a *API) apiGetRecords(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 	internalDomains := make([]string, len(domains))
 	for i, d := range domains {
-		internalDomains[i] = httpdns.InternalDomain(d.Subdomain, a.Config.General.Domain)
+		internalDomains[i] = httpreq.InternalDomain(d.Subdomain, a.Config.General.Domain)
 	}
 	records, err := a.DB.ListTXTRecordsByDomains(internalDomains)
 	if err != nil {
@@ -193,7 +193,7 @@ func (a *API) apiGetRecords(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 	if records == nil {
-		records = []httpdns.TXTRecord{}
+		records = []httpreq.TXTRecord{}
 	}
 	jsonResp(w, http.StatusOK, records)
 }

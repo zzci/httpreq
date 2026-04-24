@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/zzci/httpdns/pkg/httpdns"
+	"github.com/zzci/httpreq/pkg/httpreq"
 )
 
 // webCleanupPost handles POST /cleanup (lego httpreq DNS provider).
 // Authenticates via Basic Auth, looks up the user's nanoid subdomain, then removes the TXT record.
 func (a *API) webCleanupPost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var payload httpdns.HTTPReqPayload
+	var payload httpreq.HTTPReqPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		a.Logger.Errorw("Cleanup: JSON decode error", "error", err.Error())
 		w.Header().Set("Content-Type", "application/json")
@@ -44,7 +44,7 @@ func (a *API) webCleanupPost(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	internalDomain := httpdns.InternalDomain(subdomain, a.Config.General.Domain)
+	internalDomain := httpreq.InternalDomain(subdomain, a.Config.General.Domain)
 
 	if err := a.DB.CleanupTXT(internalDomain, payload.Value); err != nil {
 		a.Logger.Errorw("Cleanup: DB error", "error", err.Error())
