@@ -202,8 +202,10 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--slate-400);
   transition: all var(--transition);
 }
