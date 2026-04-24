@@ -31,7 +31,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">http<span>req</span></div>
-        <div className="auth-tagline">ACME DNS Challenge Server</div>
+        <div className="auth-tagline">ACME httpreq Server</div>
         <div className="auth-subtitle">Sign in to manage your domains and certificates</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>

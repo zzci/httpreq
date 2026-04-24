@@ -35,7 +35,7 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">http<span>req</span></div>
-        <div className="auth-tagline">ACME DNS Challenge Server</div>
+        <div className="auth-tagline">ACME httpreq Server</div>
         <div className="auth-subtitle">Create an account to get started</div>
         {error && <div className="error">{error}</div>}
         <form onSubmit={handleSubmit}>
