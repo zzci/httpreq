@@ -53,8 +53,9 @@ func (a *API) Start(dnsservers []httpdns.NS) {
 	router.POST("/present", a.BasicAuthHTTPreq(a.webPresentPost))
 	router.POST("/cleanup", a.BasicAuthHTTPreq(a.webCleanupPost))
 
-	// Health check
+	// Health check and llms.txt
 	router.GET("/health", a.healthCheck)
+	router.GET("/llms.txt", a.serveLLMsTxt)
 
 	// Web API endpoints — JWT auth
 	router.POST("/api/register", a.apiRegister)
@@ -167,7 +168,7 @@ func (a *API) withSPA(router http.Handler) http.Handler {
 		path := r.URL.Path
 
 		// API, httpreq, and health endpoints go to the router
-		if path == "/present" || path == "/cleanup" || path == "/health" ||
+		if path == "/present" || path == "/cleanup" || path == "/health" || path == "/llms.txt" ||
 			len(path) >= 4 && path[:4] == "/api" ||
 			len(path) >= 6 && path[:6] == "/admin" {
 			router.ServeHTTP(w, r)
