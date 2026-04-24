@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [newKeyScopes, setNewKeyScopes] = useState<string[]>(['']);
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [showAddKey, setShowAddKey] = useState(false);
+  const [showScopeHelp, setShowScopeHelp] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -165,9 +166,20 @@ export default function Dashboard() {
               onChange={(e) => setNewKeyName(e.target.value)} autoFocus />
             <div className="scope-label">
               Domains
-              <span className="scope-help" title="Define which domains this key can access.&#10;&#10;• Leave empty = global (all domains)&#10;• *.example.com = example.com and all subdomains&#10;• example.com = exact domain only&#10;&#10;Note: *.example.com already covers example.com, no need to add both.">?</span>
+              <span className="scope-help" onClick={() => setShowScopeHelp(!showScopeHelp)}>?</span>
               <span className="scope-hint">Leave empty for global access</span>
             </div>
+            {showScopeHelp && (
+              <div className="scope-help-box">
+                <strong>Define which domains this key can access:</strong>
+                <ul>
+                  <li><code>*.example.com</code> — example.com and all subdomains</li>
+                  <li><code>example.com</code> — exact domain only</li>
+                  <li>Leave all empty — global access (all domains)</li>
+                </ul>
+                <p>*.example.com already covers example.com, duplicates are removed automatically.</p>
+              </div>
+            )}
             <div className="scope-list">
               {newKeyScopes.map((s, i) => (
                 <div className="scope-row" key={i}>

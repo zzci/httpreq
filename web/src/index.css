@@ -334,12 +334,43 @@ body {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--slate-200);
-  color: var(--slate-500);
+  background: var(--blue-600);
+  color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
-  cursor: help;
+  cursor: pointer;
   margin-left: 0.3rem;
+  user-select: none;
+}
+
+.scope-help-box {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: var(--slate-600);
+  line-height: 1.6;
+}
+
+.scope-help-box ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.scope-help-box li { margin: 0.2rem 0; }
+
+.scope-help-box code {
+  background: var(--slate-200);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+
+.scope-help-box p {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--slate-400);
 }
 
 .scope-hint {
