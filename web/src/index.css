@@ -519,7 +519,7 @@ tr:last-child td { border-bottom: none; }
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.55rem 1.15rem 1.15rem;
 }
 
 .config-section {}
