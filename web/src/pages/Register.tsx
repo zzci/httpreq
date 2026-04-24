@@ -53,9 +53,7 @@ export default function Register() {
         <div className="auth-footer">
           <a href="https://github.com/zzci/httpreq" target="_blank" rel="noreferrer">GitHub</a>
           <span>&middot;</span>
-          <a href="https://go-acme.github.io/lego/dns/httpreq/" target="_blank" rel="noreferrer">Docs</a>
-          <span>&middot;</span>
-          <a href="/llms.txt" target="_blank">API</a>
+          <a href="/llms.txt" target="_blank">llms.txt</a>
         </div>
       </div>
     </div>
