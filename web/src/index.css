@@ -62,6 +62,17 @@ body {
 
 .auth-link a { color: #333; }
 
+.auth-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.auth-footer a { color: #999; }
+.auth-footer a:hover { color: #333; }
+.auth-footer span { color: #ccc; }
+
 .container {
   max-width: 900px;
   margin: 0 auto;

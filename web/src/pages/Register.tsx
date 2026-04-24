@@ -57,6 +57,11 @@ export default function Register() {
       <p className="auth-link">
         Already have an account? <Link to="/login">Login</Link>
       </p>
+      <div className="auth-footer">
+        <a href="https://github.com/zzci/httpdns" target="_blank" rel="noreferrer">GitHub</a>
+        <span> · </span>
+        <a href="/llms.txt" target="_blank">llms.txt</a>
+      </div>
     </div>
   );
 }
