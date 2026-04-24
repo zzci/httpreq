@@ -95,7 +95,20 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="topbar">
-        <div className="topbar-logo">HTTPREQ</div>
+        <div className="topbar-left">
+          <div className="topbar-logo">HTTPREQ</div>
+          <div className="topbar-nav">
+            <button className={`nav-item ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
+              Domains <span className="nav-count">{domains.length}</span>
+            </button>
+            <button className={`nav-item ${tab === 'keys' ? 'active' : ''}`} onClick={() => setTab('keys')}>
+              API Keys <span className="nav-count">{keys.length}</span>
+            </button>
+            <button className={`nav-item ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>
+              Config
+            </button>
+          </div>
+        </div>
         <div className="topbar-actions">
           <span className="topbar-user">{username}</span>
           <button className="btn-ghost" onClick={() => { clearToken(); navigate('/login'); }}>Logout</button>
@@ -103,19 +116,6 @@ export default function Dashboard() {
       </div>
 
       {error && <div className="error">{error}</div>}
-
-      {/* Tabs */}
-      <div className="tabs">
-        <button className={`tab ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
-          Domains <span className="tab-count">{domains.length}</span>
-        </button>
-        <button className={`tab ${tab === 'keys' ? 'active' : ''}`} onClick={() => setTab('keys')}>
-          API Keys <span className="tab-count">{keys.length}</span>
-        </button>
-        <button className={`tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>
-          Configuration
-        </button>
-      </div>
 
       {/* Domains Tab */}
       {tab === 'domains' && (
