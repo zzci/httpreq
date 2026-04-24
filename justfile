@@ -6,16 +6,17 @@ web-build:
 
 # Build Go binary (with embedded frontend)
 build: web-build
-    CGO_ENABLED=0 go build -o httpreq .
+    mkdir -p dist
+    CGO_ENABLED=0 go build -o dist/httpreq .
 
 # Run all tests
 test:
     go test ./pkg/...
 
 # Start dev server (backend + frontend via nsl)
-dev:
+dev: build
     #!/usr/bin/env bash
-    nsl run -n httpreq ./httpreq -c config.cfg &
+    nsl run -n httpreq dist/httpreq -c config.cfg &
     BACKEND_PID=$!
     cd web && nsl run -n httpreq-dev npx vite --port NSL_PORT &
     FRONTEND_PID=$!
@@ -23,12 +24,12 @@ dev:
     wait
 
 # Start backend only via nsl
-serve:
-    nsl run -n httpreq ./httpreq -c config.cfg
+serve: build
+    nsl run -n httpreq dist/httpreq -c config.cfg
 
 # Clean build artifacts and data
 clean:
-    rm -f httpreq
+    rm -rf dist
     rm -rf web/dist
 
 # Format and lint

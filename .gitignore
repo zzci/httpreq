@@ -1,4 +1,4 @@
-/httpreq
+dist/
 data/
 .lego/
 coverage.out
