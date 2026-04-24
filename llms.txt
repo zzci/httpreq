@@ -1,0 +1,145 @@
+# httpdns
+
+> DNS TXT record management server for ACME DNS-01 challenges, compatible with lego httpreq provider.
+
+Source: https://github.com/zzci/httpdns
+Online service: https://dnsall.com
+
+## What this project does
+
+httpdns is a self-hosted DNS server + HTTP API that handles ACME DNS-01 challenges via CNAME delegation. Users register, add their domains, set a CNAME record, then use lego/Traefik to automatically obtain SSL certificates (including wildcards).
+
+## Architecture
+
+Go backend with embedded React SPA frontend. Single binary deployment.
+
+```
+main.go                    Entry point, config loading, server startup
+pkg/httpdns/               Core types, interfaces, config, CNAME mapping
+pkg/api/                   HTTP API (JWT auth, Basic Auth, admin, present/cleanup)
+pkg/database/              SQLite/PostgreSQL with schema migrations (currently v4)
+pkg/nameserver/            DNS server (miekg/dns), serves TXT records from DB
+web/                       React + Vite + TypeScript SPA (embedded via go:embed)
+```
+
+## Key design decisions
+
+### CNAME delegation with deterministic nanoid subdomains
+- Users add domain `example.com`, system generates subdomain `sha256(username:domain)[:8]` (e.g. `182821e6`)
+- CNAME target: `_acme-challenge.example.com → 182821e6.s.dnsall.com`
+- Deterministic: same user+domain always produces same subdomain, survives DB loss
+- Hash collision handled by incrementing salt and retrying (max 10 attempts)
+
+### Three authentication layers
+1. **JWT Bearer** — Web dashboard (`/api/*` endpoints), 72h expiry
+2. **HTTP Basic Auth** — lego httpreq (`/present`, `/cleanup`), uses `username:api_key` (NOT password)
+3. **X-Admin-Key header** — Admin API (`/admin/*`), configured in config file
+
+### FQDN resolution in present/cleanup
+lego may follow CNAME and send the resolved FQDN instead of the original. `resolveSubdomain()` in `present.go` handles both:
+1. Try extracting nanoid from base domain suffix (CNAME-resolved case)
+2. Fall back to original domain lookup (normal case)
+
+## Database schema (v4)
+
+```sql
+acmedns          -- key-value metadata (db_version)
+users            -- id, username, password_hash, api_key, created_at
+user_domains     -- user_id, domain, subdomain (nanoid), UNIQUE(user_id, domain)
+txt              -- Domain, Value, LastUpdate (TXT records for DNS)
+```
+
+## Config file (TOML)
+
+Default path: `./data/config.cfg` (relative to working directory)
+
+Key fields:
+- `general.domain` — DNS base domain for nanoid subdomains (e.g. `s.dnsall.com`)
+- `api.api_domain` — API endpoint domain for display (e.g. `api.dnsall.com`), defaults to general.domain
+- `api.jwt_secret` — JWT signing key (auto-generated if empty, set for persistence)
+- `api.admin_key` — Admin API key (empty = disabled)
+- `database.engine` — `sqlite` or `postgres`
+- `database.connection` — file path for SQLite, connection string for PostgreSQL
+
+## API endpoints
+
+### httpreq (Basic Auth: username + api_key)
+- `POST /present` — `{fqdn, value}` store TXT record
+- `POST /cleanup` — `{fqdn, value}` remove TXT record
+
+### Public
+- `POST /api/register` — `{username, password}` → `{token, username, api_key}`
+- `POST /api/login` — `{username, password}` → `{token, username, api_key}`
+- `GET /api/info` — `{base_domain, api_domain}`
+
+### User (JWT Bearer)
+- `GET /api/profile` — `{username, api_key}`
+- `POST /api/profile/regenerate-key` — `{api_key}`
+- `GET /api/domains` — `[{domain, subdomain, cname_target}]`
+- `POST /api/domains` — `{domain}` → `{domain, subdomain, cname_target}`
+- `DELETE /api/domains/:domain`
+- `GET /api/records` — `[{domain, value, last_update}]`
+
+### Admin (X-Admin-Key header)
+- `GET /admin/users`, `POST /admin/users`, `DELETE /admin/users/:id`
+- `GET /admin/domains`, `POST /admin/domains`, `DELETE /admin/domains/:domain`
+- `GET /admin/records`
+
+## Usage with lego
+
+```bash
+LEGO_DISABLE_CNAME_SUPPORT=true \
+HTTPREQ_ENDPOINT=https://api.dnsall.com \
+HTTPREQ_USERNAME=myuser \
+HTTPREQ_PASSWORD=<api_key> \
+lego --dns httpreq --dns.propagation-disable-ans \
+  --domains example.com --domains "*.example.com" \
+  --email admin@example.com --accept-tos run
+```
+
+Key flags:
+- `LEGO_DISABLE_CNAME_SUPPORT=true` — prevent lego from rewriting FQDN after CNAME resolution
+- `--dns.propagation-disable-ans` — skip authoritative NS propagation check (records are on httpdns, not the domain's NS)
+
+## Traefik integration
+
+```yaml
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      dnsChallenge:
+        provider: httpreq
+        propagation:
+          disableChecks: true
+```
+
+Environment: `LEGO_DISABLE_CNAME_SUPPORT=true`, `HTTPREQ_ENDPOINT`, `HTTPREQ_USERNAME`, `HTTPREQ_PASSWORD`
+
+## Build
+
+```bash
+cd web && npm ci && npx vite build && cd ..
+CGO_ENABLED=0 go build -o httpdns .
+```
+
+Docker: multi-stage (node frontend → go backend → alpine runtime), cross-compiled via `--platform=$BUILDPLATFORM` + `GOOS/GOARCH`.
+
+## Testing
+
+```bash
+go test ./pkg/...
+```
+
+All tests use in-memory SQLite (`:memory:`). The `TestFileCheckPermissionDenied` test has been removed.
+
+## Dependencies
+
+- `miekg/dns` — DNS protocol
+- `julienschmidt/httprouter` — HTTP router
+- `golang-jwt/jwt/v5` — JWT tokens
+- `golang.org/x/crypto/bcrypt` — password hashing
+- `caddyserver/certmagic` — auto HTTPS for the API itself
+- `glebarez/go-sqlite` — pure Go SQLite (CGO_ENABLED=0)
+- `lib/pq` — PostgreSQL driver
+- `BurntSushi/toml` — config parsing
+- `go.uber.org/zap` — structured logging
