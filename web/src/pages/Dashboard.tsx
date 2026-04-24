@@ -104,24 +104,6 @@ export default function Dashboard() {
 
       {error && <div className="error">{error}</div>}
 
-      {/* Global Key Banner */}
-      {defaultKey && (
-        <div className="card">
-          <div className="card-body" style={{display:'flex',gap:'1.5rem',flexWrap:'wrap',alignItems:'center'}}>
-            <div className="cred-row" style={{flex:1,minWidth:200}}>
-              <span className="cred-label">Username</span>
-              <span className="cred-value">{username}</span>
-              <CopyBtn text={username} />
-            </div>
-            <div className="cred-row" style={{flex:2,minWidth:300}}>
-              <span className="cred-label">Global Key</span>
-              <span className="cred-value">{defaultKey.key}</span>
-              <CopyBtn text={defaultKey.key} />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="tabs">
         <button className={`tab ${tab === 'domains' ? 'active' : ''}`} onClick={() => setTab('domains')}>
