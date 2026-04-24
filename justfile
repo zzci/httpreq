@@ -13,14 +13,14 @@ build: web-build
 test:
     go test ./pkg/...
 
-# Start dev server (backend + frontend via nsl)
+# Start dev server (frontend + backend on same domain via nsl path prefix)
 dev: build
     #!/usr/bin/env bash
-    nsl run -n httpreq dist/httpreq -c config.cfg &
-    BACKEND_PID=$!
-    cd web && nsl run -n httpreq-dev npx vite --port NSL_PORT &
+    cd web && nsl run -n httpreq npx vite &
     FRONTEND_PID=$!
-    trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
+    nsl run -n httpreq:/api dist/httpreq -c config.cfg &
+    BACKEND_PID=$!
+    trap "kill $FRONTEND_PID $BACKEND_PID 2>/dev/null" EXIT
     wait
 
 # Start backend only via nsl
